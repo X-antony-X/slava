@@ -1,0 +1,30 @@
+@import "tailwindcss";
+/* إخفاء عين الباسوورد الافتراضية في متصفحات Edge و Chrome */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}
+
+/* تعريف الحركة من اليمين للشمال */
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-100%); }
+}
+
+/* الكلاس اللي هيشغل الحركة */
+.animate-marquee-infinite {
+  display: flex;
+  animation: marquee 25s linear infinite;
+}
+
+/* لضمان نعومة الحركة في الموبايل */
+.text-stroke {
+  -webkit-text-stroke: 1px black;
+}
