@@ -105,7 +105,7 @@ const AddProductForm = () => {
   <>
     <div className="max-w-2xl mx-auto p-8 bg-white rounded-xl shadow-sm border border-gray-100 mt-10 mb-20 font-sans text-black">
       <h2 className="text-3xl font-black italic uppercase mb-8 tracking-tight">
-        Add New Drop <span className="text-gray-300">/ Robino</span>
+        Add New Drop <span className="text-gray-300">/ slava</span>
       </h2>
       
       <form onSubmit={handleSubmit} className="flex flex-col gap-8">
@@ -117,7 +117,7 @@ const AddProductForm = () => {
             type="text" 
             required
             value={product.name}
-            placeholder="ROBINO ESSENTIAL"
+            placeholder="SLAVA ESSENTIAL"
             className="border-2 border-gray-100 p-4 rounded-xl outline-none focus:border-black transition-all font-bold"
             onChange={(e) => setProduct({...product, name: e.target.value})}
           />

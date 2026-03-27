@@ -65,6 +65,18 @@ const CategoryPage = () => {
         else if (selectedPrice === "1,000 - 3,000") result = result.filter(p => p.price >= 1000 && p.price <= 3000);
         else if (selectedPrice === "Over 3,000") result = result.filter(p => p.price > 3000);
 
+
+        // ... داخل useEffect بعد ما بتجيب الـ data
+        let w = data;
+
+        // ترتيب المنتجات: العروض (old_price) تظهر أولاً
+        w.sort((a, b) => {
+          if (a.old_price && !b.old_price) return -1;
+          if (!a.old_price && b.old_price) return 1;
+          return 0;
+        });
+        // ... باقي الفلاتر (Price, Newest) كمل زي ما هي
+
         // تطبيق فلاتر المقاس واللون
         if (selectedSize) result = result.filter(p => p.sizes?.includes(selectedSize));
         if (selectedColor) result = result.filter(p => p.colors?.includes(selectedColor));
@@ -166,7 +178,23 @@ const CategoryPage = () => {
             </div>
             <span className="text-[11px] text-gray-400 font-medium uppercase">{item.sizes?.join(', ')}</span>
           </div>
-          <p className="font-black text-[14px] md:text-[16px]">{item.price?.toLocaleString()} EGP</p>
+          {/* استبدل السطر 144 بالبلوك ده */}
+          <div className="flex items-center gap-2 pt-1">
+            {item.old_price ? (
+              <>
+                <span className="font-black text-[14px] md:text-[16px] text-red-600 italic">
+                  {item.price?.toLocaleString()} EGP
+                </span>
+                <span className="text-[12px] md:text-[13px] text-gray-400 line-through italic decoration-1">
+                  {item.old_price?.toLocaleString()} EGP
+                </span>
+              </>
+            ) : (
+              <span className="font-black text-[14px] md:text-[16px]">
+                {item.price?.toLocaleString()} EGP
+              </span>
+            )}
+          </div>
         </div>
       </div>
     );

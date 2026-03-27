@@ -4,39 +4,48 @@ import { PlusCircle, Package, Users, LogOut, LayoutGrid, Monitor, Layers, Image 
 import { useNavigate } from 'react-router-dom';
 
 const AdminDashboard = () => {
-  const [adminName, setAdminName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+const [adminName, setAdminName] = useState("");
+const [userCount, setUserCount] = useState(0); // State للمستخدمين
+const [productCount, setProductCount] = useState(0); // State للمنتجات
+const [loading, setLoading] = useState(true);
+const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAdminData = async () => {
+useEffect(() => {
+  const fetchAdminData = async () => {
+    try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate('/slava-admin-gate');
-        return;
-      }
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
+      if (!user) { navigate('/slava-admin-gate'); return; }
 
-      if (profile) setAdminName(profile.full_name);
+      // جلب الأعداد في خطوة واحدة تقريباً
+      const [resUsers, resProducts, resProfile] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('products').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('full_name').eq('id', user.id).single()
+      ]);
+
+      if (resUsers.count !== null) setUserCount(resUsers.count);
+      if (resProducts.count !== null) setProductCount(resProducts.count);
+      if (resProfile.data) setAdminName(resProfile.data.full_name);
+
+    } catch (error) {
+      console.error("Dashboard error:", error);
+    } finally {
       setLoading(false);
-    };
-    fetchAdminData();
-  }, [navigate]);
+    }
+  };
+  fetchAdminData();
+}, [navigate]);
+
+const stats = [
+  { name: 'Products', value: productCount, icon: Package },
+  { name: 'Orders', value: '12', icon: LayoutGrid },
+  { name: 'Users', value: userCount, icon: Users },
+];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
   };
-
-  const stats = [
-    { name: 'Products', value: '42', icon: Package },
-    { name: 'Orders', value: '12', icon: LayoutGrid },
-    { name: 'Users', value: '315', icon: Users },
-  ];
 
   // الأقسام الجديدة لتعديل الـ Homepage
   const uiSections = [
@@ -125,7 +134,16 @@ const AdminDashboard = () => {
           <PlusCircle size={48} className="text-zinc-300 group-hover:text-white transition-all duration-500 group-hover:rotate-90" />
           <div className="space-y-2">
             <h3 className="text-2xl md:text-4xl font-black italic tracking-tighter">Add New Product</h3>
-            <p className="text-zinc-500 group-hover:text-zinc-400 text-[9px] md:text-[11px] tracking-widest uppercase">Sync new designs to Robino.</p>
+            <p className="text-zinc-500 group-hover:text-zinc-400 text-[9px] md:text-[11px] tracking-widest uppercase">Sync new designs to Slava.</p>
+          </div>
+        </div>
+
+        {/* 4. make offer Section */}
+        <div onClick={() => navigate('/admin/inventory')} className="cursor-pointer group relative bg-zinc-50 border-2 border-black p-8 md:p-16 flex flex-col items-center justify-center text-center space-y-6 overflow-hidden transition-all hover:bg-black hover:text-white">
+          <PlusCircle size={48} className="text-zinc-300 group-hover:text-white transition-all duration-500 group-hover:rotate-90" />
+          <div className="space-y-2">
+            <h3 className="text-2xl md:text-4xl font-black italic tracking-tighter">Make Offer</h3>
+            <p className="text-zinc-500 group-hover:text-zinc-400 text-[9px] md:text-[11px] tracking-widest uppercase">Sync new designs to Slava.</p>
           </div>
         </div>
 

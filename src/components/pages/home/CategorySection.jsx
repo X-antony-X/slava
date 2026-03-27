@@ -130,7 +130,7 @@ const CategorySection = () => {
             </SwiperSlide>
           ))}
           {/* Scrollbar للموبايل */}
-          <div className="spot-scrollbar mt-8 h-1 bg-gray-100 rounded-full md:hidden" />
+          <div className="spot-scrollbar mt-8 h-1 bg-gray-100 rounded-full md:hidden" /> 
         </Swiper>
       </div>
 

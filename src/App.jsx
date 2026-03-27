@@ -24,6 +24,7 @@ import AddProductForm from "./components/dataBase/adminControl/AddProductForm"; 
 import AboutSlava from "./components/pages/display/AboutSlava"; // استيراد صفحة About Slava
 import ContactPage from './components/footer/ContactPage';
 import Returns from './components/footer/Returns';
+import AdminInventory from './components/dataBase/adminControl/AdminInventory'; // استيراد صفحة إدارة المخزون الجديدة
 
 // 1. استيراد صفحة تعديل الـ Hero اللي عملناها
 import EditHeroSection from "./components/dataBase/adminControl/EditHeroSection"; 
@@ -103,6 +104,15 @@ function AppContent({ session }) {
           element={
             <AdminGuard>
               <AddProductForm />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/inventory" 
+          element={
+            <AdminGuard>
+              <AdminInventory />
             </AdminGuard>
           } 
         />

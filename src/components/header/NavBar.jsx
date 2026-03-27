@@ -82,7 +82,6 @@ const Navbar = () => {
 
   const menuItems = {
       tops: [
-        { name: 'All Tops', path: '/shop/tops' },
         { name: 'Hoodies', path: '/shop/hoodie' }, // شيلنا الـ s عشان تطابق الـ Inventory
         { name: 'Jackets', path: '/shop/jacket' },
         { name: 'T-Shirts', path: '/shop/t-shirt' },
@@ -90,14 +89,11 @@ const Navbar = () => {
         { name: 'Pullovers', path: '/shop/pullover' }
       ],
       bottoms: [
-        { name: 'All Bottoms', path: '/shop/bottoms' },
         { name: 'Pants', path: '/shop/pants' },
         { name: 'Shorts', path: '/shop/shorts' },
         { name: 'Sweatpants', path: '/shop/sweatpants' }
       ]
     };
-
-  const popularSearches = ['Oversized', 'Black Hoodie', 'Cargo Pants', 'New Drop', 'Summer Collection'];
 
   return (
     <>
@@ -202,21 +198,6 @@ const Navbar = () => {
                       ))}
                     </div>
 
-                    {/* لو لسه عايز تسيب الكلمات المشهورة تحت المنتجات بشكل بسيط */}
-                    <div className="mt-12 pt-8 border-t border-gray-50">
-                      <h3 className="text-gray-400 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Quick Links</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {popularSearches.slice(0,3).map((term) => (
-                          <button 
-                            key={term}
-                            onClick={() => setSearchTerm(term)}
-                            className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors"
-                          >
-                            {term}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                   </div>
             )}
           </div>

@@ -112,15 +112,6 @@ const BannerEditor = ({ id, label }) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Sub-Text</label>
-          <textarea 
-            value={desc} onChange={(e) => setDesc(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-slate-800 p-4 text-sm focus:border-cyan-500 outline-none transition-all h-24 resize-none"
-            placeholder="Enter brief description..."
-          />
-        </div>
-
         <button 
           onClick={saveText}
           disabled={uploading}
