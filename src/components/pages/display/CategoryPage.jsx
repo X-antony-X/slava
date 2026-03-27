@@ -122,81 +122,88 @@ const CategoryPage = () => {
     };
 
     return (
-      <div className="group cursor-pointer relative flex flex-col h-full bg-white transition-all">
+<div className="group cursor-pointer relative flex flex-col h-full bg-white transition-all">
+  {/* Container الصورة */}
+  <div 
+    className="relative aspect-[3/4] bg-[#f6f6f6] overflow-hidden rounded-sm"
+    onMouseEnter={() => images.length > 1 && setCurrentIndex(1)}
+    onMouseLeave={() => setCurrentIndex(0)}
+    onTouchStart={handleTouchStart}
+    onTouchEnd={handleTouchEnd}
+  >
+    <img 
+      src={images[currentIndex]} 
+      alt={item.name} 
+      className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
+    />
+
+    {/* Wishlist */}
+
+    {/* Add to Cart - Desktop ONLY */}
+    <div className="absolute bottom-0 w-full p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden md:block">
+      <button onClick={(e) => {e.stopPropagation(); addToCart(item)}} className="w-full bg-black text-white py-2 text-[11px] font-bold uppercase rounded-sm hover:bg-zinc-800">
+        Add to Cart
+      </button>
+    </div>
+  </div>
+
+  {/* الـ Dots تحت الصورة */}
+  {images.length > 1 && (
+    <div className="flex justify-center gap-1 mt-2 md:hidden">
+      {images.map((_, idx) => (
         <div 
-          className="relative aspect-[4/5] bg-[#f6f6f6] overflow-hidden mb-4 rounded-sm"
-          onMouseEnter={() => images[1] && setCurrentIndex(1)}
-          onMouseLeave={() => setCurrentIndex(0)}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          <img 
-            src={images[currentIndex]} 
-            alt={item.name} 
-            className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105" 
-          />
+          key={idx} 
+          className={`h-0.5 rounded-full transition-all duration-300 ${currentIndex === idx ? 'bg-black w-3' : 'bg-gray-200 w-1'}`} 
+        />
+      ))}
+    </div>
+  )}
 
-          {images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-20 md:hidden">
-              {images.map((_, idx) => (
-                <div 
-                  key={idx} 
-                  className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentIndex === idx ? 'bg-black w-3' : 'bg-black/20'}`} 
-                />
-              ))}
-            </div>
-          )}
+  {/* 🟢 تفاصيل المنتج - ترتيب عمودي ومتوسط (Centered) */}
+  <div className="pt-3 pb-1 px-1 flex flex-col items-center text-center flex-grow">
+    {/* اسم المنتج */}
+    <h3 className="font-bold text-[12px] md:text-[15px] uppercase tracking-tight leading-tight w-full px-1">
+      {item.name}
+    </h3>
+    
+    {/* الفئة */}
+    <p className="text-gray-400 text-[9px] md:text-[11px] uppercase mt-1 tracking-widest">
+      {item.category}
+    </p>
 
-          <button 
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(item); }} 
-            className="absolute top-3 right-3 z-20 p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md"
-          >
-            <Heart size={18} className={`transition-colors ${isLiked ? "fill-red-500 stroke-red-500" : "stroke-black"}`} />
-          </button>
+    {/* السعر */}
+    <div className="flex flex-col items-center mt-2">
+       <span className={`font-black text-[13px] md:text-[16px] ${item.old_price ? 'text-red-600' : 'text-black'}`}>
+         {item.price} <span className="text-[9px]">EGP</span>
+       </span>
+       {item.old_price && (
+         <span className="text-[10px] text-gray-400 line-through opacity-70">
+           {item.old_price}
+         </span>
+       )}
+    </div>
 
-          <div className="absolute bottom-0 w-full p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300 hidden md:block z-10">
-            <button onClick={(e) => {e.stopPropagation(); addToCart(item)}} className="w-full bg-black text-white py-2.5 font-bold text-[12px] flex items-center justify-center gap-2 rounded-full hover:bg-gray-800 transition-colors">
-              <ShoppingBag size={14} /> Add to Cart
-            </button>
-          </div>
-        </div>
+    {/* 🟢 زرار Add to Cart للموبايل - أيقونة سوداء شيك جداً تحت السعر */}
+    <button 
+      onClick={(e) => { e.stopPropagation(); addToCart(item); }} 
+      className="md:hidden mt-3 bg-black text-white p-2.5 rounded-full shadow-md active:scale-90 transition-transform"
+    >
+      <ShoppingBag size={14} />
+    </button>
 
-        <div className="px-1 md:hidden mb-3">
-            <button onClick={(e) => { e.stopPropagation(); addToCart(item); }} className="w-full bg-black text-white py-2.5 font-bold text-[11px] uppercase rounded-sm flex items-center justify-center gap-2">
-              <ShoppingBag size={14} /> Add to Cart
-            </button>
-        </div>
-
-        <div className="space-y-1 px-1">
-          <h3 className="font-bold text-[14px] md:text-[16px] uppercase tracking-tight truncate">{item.name}</h3>
-          <p className="text-gray-500 text-[12px] md:text-[14px] capitalize">{item.category}</p>
-          <div className="flex items-center justify-between py-1 border-t border-gray-50 mt-2">
-            <div className="flex gap-1">
-              {item.colors?.map(c => (
-                <div key={c} style={{ backgroundColor: colorMap[c] || c }} className="w-3 h-3 rounded-full border border-gray-200" />
-              ))}
-            </div>
-            <span className="text-[11px] text-gray-400 font-medium uppercase">{item.sizes?.join(', ')}</span>
-          </div>
-          {/* استبدل السطر 144 بالبلوك ده */}
-          <div className="flex items-center gap-2 pt-1">
-            {item.old_price ? (
-              <>
-                <span className="font-black text-[14px] md:text-[16px] text-red-600 italic">
-                  {item.price?.toLocaleString()} EGP
-                </span>
-                <span className="text-[12px] md:text-[13px] text-gray-400 line-through italic decoration-1">
-                  {item.old_price?.toLocaleString()} EGP
-                </span>
-              </>
-            ) : (
-              <span className="font-black text-[14px] md:text-[16px]">
-                {item.price?.toLocaleString()} EGP
-              </span>
-            )}
-          </div>
-        </div>
+    {/* الألوان والمقاسات */}
+    <div className="w-full flex items-center justify-between mt-auto pt-3 border-t border-gray-50">
+      <div className="flex gap-1">
+        {item.colors?.slice(0, 3).map(c => (
+          <div key={c} style={{ backgroundColor: colorMap[c] || c }} className="w-2.5 h-2.5 rounded-full border border-gray-100" />
+        ))}
       </div>
+      <span className="text-[9px] text-gray-400 font-medium uppercase tracking-tighter">
+        {item.sizes?.slice(0, 2).join(' · ')}
+      </span>
+    </div>
+  </div>
+</div>
     );
   };
 
@@ -275,16 +282,34 @@ const CategoryPage = () => {
           </div>
           <button onClick={() => setIsMobileMenuOpen(true)} className="flex md:hidden items-center gap-2 font-bold text-sm border px-4 py-2 rounded-full">Filters <SlidersHorizontal size={16} /></button>
           <button onClick={() => setShowDesktopFilters(!showDesktopFilters)} className="hidden md:flex items-center gap-2 font-bold text-sm hover:opacity-60 transition-all uppercase tracking-widest">{showDesktopFilters ? "Hide Filters" : "Show Filters"} <SlidersHorizontal size={16} /></button>
-          <div className="relative">
-            <button onClick={() => setIsSortMenuOpen(!isSortMenuOpen)} className="flex items-center gap-1 font-bold text-sm hover:opacity-60 uppercase tracking-widest">Sort: <span className="text-gray-400">{activeSort}</span> <ChevronDown size={16} /></button>
-            {isSortMenuOpen && (
-              <div className="absolute right-0 mt-4 bg-white border border-gray-100 shadow-2xl rounded-bl-3xl w-56 py-4 z-50 overflow-hidden">
-                {["Featured", "Newest", "Price: High-Low", "Price: Low-High"].map((opt) => (
-                  <button key={opt} onClick={() => { setActiveSort(opt); setIsSortMenuOpen(false); }} className="flex items-center justify-between w-full px-6 py-3 text-sm font-bold hover:bg-gray-50 transition-colors uppercase italic">{opt} {activeSort === opt && <Check size={14} />}</button>
-                ))}
-              </div>
-            )}
-          </div>
+{/* زرار الترتيب (Sort) المعدل ليكون Responsive */}
+<div className="relative">
+  <button 
+    onClick={() => setIsSortMenuOpen(!isSortMenuOpen)} 
+    className="flex items-center gap-1 font-bold hover:opacity-60 uppercase tracking-widest transition-all"
+  >
+    {/* في الموبايل بنصغر كلمة Sort أو نخفيها ونركز على القيمة */}
+    <span className="text-[10px] md:text-sm">SORT:</span> 
+    <span className="text-gray-400 text-[10px] md:text-sm truncate max-w-[80px] md:max-w-none">
+      {activeSort}
+    </span> 
+    <ChevronDown size={14} className="md:w-4 md:h-4" />
+  </button>
+
+  {isSortMenuOpen && (
+    <div className="absolute right-0 mt-4 bg-white border border-gray-100 shadow-2xl rounded-bl-3xl w-48 md:w-56 py-2 z-50 overflow-hidden">
+      {["Featured", "Newest", "Price: High-Low", "Price: Low-High"].map((opt) => (
+        <button 
+          key={opt} 
+          onClick={() => { setActiveSort(opt); setIsSortMenuOpen(false); }} 
+          className="flex items-center justify-between w-full px-5 py-3 text-[11px] md:text-sm font-bold hover:bg-gray-50 transition-colors uppercase italic"
+        >
+          {opt} {activeSort === opt && <Check size={12} />}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
         </div>
       </div>
 
@@ -326,17 +351,26 @@ const CategoryPage = () => {
         </main>
       </div>
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 md:hidden">
-        <div className="bg-black text-white border border-white/20 rounded-full shadow-2xl px-6 py-3 flex items-center gap-8">
-          <button onClick={() => setMobileCols(1)} className={`transition-all ${mobileCols === 1 ? 'text-white scale-125' : 'text-gray-500'}`}>
-            <Square size={20} strokeWidth={mobileCols === 1 ? 3 : 2} />
-          </button>
-          <div className="w-[1px] h-4 bg-gray-700" />
-          <button onClick={() => setMobileCols(2)} className={`transition-all ${mobileCols === 2 ? 'text-white scale-125' : 'text-gray-500'}`}>
-            <Grid2X2 size={20} strokeWidth={mobileCols === 2 ? 3 : 2} />
-          </button>
-        </div>
-      </div>
+{/* 🟢 Floating Switcher - تصميم أصغر وأرقّ للموبايل */}
+<div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+  <div className="bg-black/90 backdrop-blur-sm text-white rounded-full shadow-lg px-4 py-2 flex items-center gap-5 border border-white/10">
+    <button 
+      onClick={() => setMobileCols(1)} 
+      className={`transition-all duration-300 ${mobileCols === 1 ? 'text-white scale-110' : 'text-gray-500'}`}
+    >
+      <Square size={16} strokeWidth={mobileCols === 1 ? 2.5 : 2} />
+    </button>
+    
+    <div className="w-[1px] h-3 bg-white/20" />
+    
+    <button 
+      onClick={() => setMobileCols(2)} 
+      className={`transition-all duration-300 ${mobileCols === 2 ? 'text-white scale-110' : 'text-gray-500'}`}
+    >
+      <Grid2X2 size={16} strokeWidth={mobileCols === 2 ? 2.5 : 2} />
+    </button>
+  </div>
+</div>
     </div>
   );
 };

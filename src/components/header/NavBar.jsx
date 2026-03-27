@@ -289,72 +289,91 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* --- MOBILE SIDEBAR --- */}
-      <div className={`fixed inset-y-0 right-0 w-[85%] max-w-[350px] bg-white z-[100] transform transition-transform duration-300 ease-in-out lg:hidden shadow-[-20px_0_50px_rgba(0,0,0,0.1)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex flex-col h-full font-sans">
-          <div className="flex justify-end p-5">
-            <button onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); }} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <X className="h-8 w-8 text-black" />
-            </button>
-          </div>
+{/* --- MOBILE SIDEBAR - COMPACT & ULTRA RESPONSIVE --- */}
+<div className={`fixed inset-y-0 right-0 w-full xs:w-[85%] max-w-[380px] bg-white z-[300] transform transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:hidden shadow-[-20px_0_80px_rgba(0,0,0,0.15)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+  <div className="flex flex-col h-full bg-white">
+    
+    {/* Top Bar - Scaled Down */}
+    <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-50">
+       <img src="/thumbnail.svg" alt="Logo" className="h-6 sm:h-8 w-auto grayscale" />
+       <button onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); }} className="p-1.5 hover:bg-gray-100 rounded-full transition-all">
+         <X className="h-6 w-6 text-black" />
+       </button>
+    </div>
 
-          <div className="relative flex-1 overflow-hidden">
-            {/* Main Mobile Menu */}
-            <div className={`absolute inset-0 px-10 py-4 transition-all duration-400 flex flex-col gap-8 ${mobileSubMenu ? '-translate-x-full opacity-0' : 'translate-x-0 opacity-100'}`}>
-              <Link to="/shop/all" className="text-4xl font-black uppercase italic tracking-tighter" onClick={() => setIsMenuOpen(false)}>
-                All Items
-              </Link>
-              
-              <Link to="/shop/new-arrivals" className="text-4xl font-black uppercase italic tracking-tighter flex items-center gap-4" onClick={() => setIsMenuOpen(false)}>
-                New Drops
-                <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded italic tracking-normal not-italic font-black">HOT</span>
-              </Link>
-
-              <div className="h-[1px] bg-gray-100 w-full my-2" />
-
-              <button onClick={() => setMobileSubMenu('tops')} className="text-3xl font-black uppercase italic tracking-tighter flex justify-between items-center group">
-                Tops <ChevronRight className="h-8 w-8 text-gray-300" />
-              </button>
-              
-              <button onClick={() => setMobileSubMenu('bottoms')} className="text-3xl font-black uppercase italic tracking-tighter flex justify-between items-center group">
-                Bottoms <ChevronRight className="h-8 w-8 text-gray-300" />
-              </button>
+    <div className="relative flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+      {/* Main Mobile Menu */}
+      <div className={`absolute inset-0 px-6 py-8 sm:px-8 sm:py-10 transition-all duration-500 flex flex-col gap-8 ${mobileSubMenu ? '-translate-x-full opacity-0' : 'translate-x-0 opacity-100'}`}>
+        
+        {/* Navigation Links - Reduced Sizes for small screens */}
+        <div className="space-y-4 sm:space-y-6">
+          <Link to="/shop/all" className="group flex items-baseline gap-3" onClick={() => setIsMenuOpen(false)}>
+            <span className="text-gray-200 font-black italic text-base sm:text-xl">01</span>
+            <span className="text-[2.2rem] xs:text-[2.75rem] font-black uppercase italic tracking-tighter leading-none">All Items</span>
+          </Link>
+          
+          <Link to="/shop/new-arrivals" className="group flex items-baseline gap-3" onClick={() => setIsMenuOpen(false)}>
+            <span className="text-gray-200 font-black italic text-base sm:text-xl">02</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[2.2rem] xs:text-[2.75rem] font-black uppercase italic tracking-tighter leading-none">Drops</span>
+              <span className="text-[8px] bg-red-600 text-white px-1.5 py-0.5 rounded-sm font-black animate-pulse">HOT</span>
             </div>
+          </Link>
+        </div>
 
-            {/* Sub Mobile Menu */}
-            <div className={`absolute inset-0 px-10 py-4 transition-all duration-400 bg-white flex flex-col gap-8 ${mobileSubMenu ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
-              <button onClick={() => setMobileSubMenu(null)} className="flex items-center gap-2 text-gray-400 font-black uppercase text-[10px] tracking-[0.3em] mb-4">
-                <ChevronLeft className="h-4 w-4" /> Back to menu
-              </button>
-              
-              <h2 className="text-5xl font-black uppercase italic tracking-tighter border-l-4 border-black pl-4 mb-4">{mobileSubMenu}</h2>
-              
-              <div className="flex flex-col gap-6">
-                {mobileSubMenu && menuItems[mobileSubMenu].map((item) => (
-                  <Link 
-                    key={item.name} 
-                    to={item.path} 
-                    className="text-xl text-gray-500 font-bold uppercase tracking-widest hover:text-black transition-colors"
-                    onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); }}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
+        <div className="w-full h-[1px] bg-gray-50" />
 
-          <div className="p-10 border-t border-gray-100 space-y-6">
-            <p className="text-gray-400 text-[11px] font-bold uppercase tracking-widest leading-relaxed text-center">
-              Elevate your style with the latest Robino Drops.
-            </p>
-            <div className="flex flex-col gap-3">
-               <button className="w-full bg-black text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Join Robino</button>
-               <button className="w-full border-2 border-black py-4 rounded-2xl font-black uppercase text-xs tracking-widest">Sign In</button>
-            </div>
-          </div>
+        {/* Categories - More Compact */}
+        <div className="space-y-6 sm:space-y-8">
+          <button onClick={() => setMobileSubMenu('tops')} className="w-full text-xl sm:text-2xl font-black uppercase tracking-tighter flex justify-between items-center group">
+            <span className="flex items-center gap-3">Tops <span className="text-[9px] text-gray-300 font-bold tracking-widest">({menuItems.tops.length})</span></span>
+            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-black transition-colors" />
+          </button>
+          
+          <button onClick={() => setMobileSubMenu('bottoms')} className="w-full text-xl sm:text-2xl font-black uppercase tracking-tighter flex justify-between items-center group">
+            <span className="flex items-center gap-3">Bottoms <span className="text-[9px] text-gray-300 font-bold tracking-widest">({menuItems.bottoms.length})</span></span>
+            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-black transition-colors" />
+          </button>
         </div>
       </div>
+
+      {/* Sub Mobile Menu */}
+      <div className={`absolute inset-0 px-6 py-8 sm:px-8 sm:py-10 transition-all duration-500 bg-white flex flex-col ${mobileSubMenu ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
+        <button onClick={() => setMobileSubMenu(null)} className="flex items-center gap-2 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] mb-8">
+          <ChevronLeft className="h-4 w-4" /> Back
+        </button>
+        
+        <div className="flex flex-col gap-6 border-l-2 border-black pl-4">
+          {mobileSubMenu && menuItems[mobileSubMenu].map((item) => (
+            <Link key={item.name} to={item.path} className="text-xl sm:text-2xl text-black font-black uppercase tracking-tight" onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); }}>
+              {item.name}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    {/* Sidebar Footer - Optimized for Small Screens */}
+    <div className="p-5 sm:p-8 bg-gray-50/50 border-t border-gray-100">
+      <div className="flex flex-col gap-2">
+        {/* My Account Button - Full Width on top */}
+        <Link to="/account" onClick={() => setIsMenuOpen(false)} className="w-full bg-black text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all">
+           My Account
+        </Link>
+        
+        {/* Join & Sign In - Side by Side */}
+        <div className="grid grid-cols-2 gap-2">
+           <Link to="/account" className="bg-white border border-gray-200 text-black py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:border-black transition-all text-center">Join Us</Link>
+           <Link to="/account" className="bg-white border border-gray-200 text-black py-3 rounded-xl font-black uppercase text-[9px] tracking-widest hover:border-black transition-all text-center">Sign In</Link>
+        </div> 
+      </div>
+      
+      <p className="text-[8px] text-gray-300 font-bold uppercase tracking-[0.2em] text-center mt-6">
+        Designed by Antony • Ismailia
+      </p>
+    </div>
+  </div>
+</div>
     </>
   );
 };

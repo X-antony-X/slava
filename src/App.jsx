@@ -25,7 +25,7 @@ import AboutSlava from "./components/pages/display/AboutSlava"; // استيرا�
 import ContactPage from './components/footer/ContactPage';
 import Returns from './components/footer/Returns';
 import AdminInventory from './components/dataBase/adminControl/AdminInventory'; // استيراد صفحة إدارة المخزون الجديدة
-
+import ScrollToTop from './components/pages/home/ScrollToTop'; // استيراد الـ ScrollToTop الجديد
 // 1. استيراد صفحة تعديل الـ Hero اللي عملناها
 import EditHeroSection from "./components/dataBase/adminControl/EditHeroSection"; 
 
@@ -37,6 +37,7 @@ function AppContent({ session }) {
 
   return (
     <>
+    <ScrollToTop />
       {!isAdminPage && (
         <>
           <TopHeader />

@@ -3,6 +3,7 @@ import { supabase } from "../../dataBase/supabaseClient";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Scrollbar } from 'swiper/modules';
 import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Swiper styles
 import 'swiper/css';
@@ -48,11 +49,13 @@ const OffersSection = () => {
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-[1.3rem] font-medium tracking-normal uppercase font-black italic">
-            slava <span className="text-red-600 italic">Drops / Exclusive Offers</span>
+            slava Offers
           </h2>
           
           <div className="flex items-center gap-4">
-            <span className="text-[14px] font-medium text-black cursor-pointer hover:text-gray-400 transition-colors underline underline-offset-4 uppercase">View All</span>
+            <Link to="/shop/all" className="text-[14px] font-medium text-black cursor-pointer hover:text-gray-400 transition-colors underline underline-offset-4 uppercase">
+              View All
+            </Link>
             
             <div className="hidden md:flex items-center gap-2">
               <button className="nike-prev bg-[#f5f5f5] hover:bg-[#e5e5e5] p-3 rounded-full transition-colors">
