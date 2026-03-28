@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { supabase } from '../../dataBase/supabaseClient'; // تأكد من مسار الملف عندك
+import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
   const [slides, setSlides] = useState([]);
@@ -146,9 +147,9 @@ const HeroSection = () => {
           <p className="text-[9px] md:text-[10px] tracking-[0.4em] text-zinc-400">{currentSlide.desc}</p>
           <h1 className="text-2xl md:text-5xl font-bold tracking-widest italic">{currentSlide.title}</h1>
           <div className="pt-6 pointer-events-auto">
-            <button className="bg-white text-black px-6 md:px-8 py-2.5 md:py-3 text-[9px] md:text-[10px] font-bold tracking-[0.2em] hover:bg-zinc-200 transition-all">
+            <Link to="/shop/all" className="bg-white text-black px-6 md:px-8 py-2.5 md:py-3 text-[9px] md:text-[10px] font-bold tracking-[0.2em] hover:bg-zinc-200 transition-all">
               DISCOVER NOW
-            </button>
+            </Link>
           </div>
         </div>
       </div>

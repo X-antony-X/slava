@@ -28,6 +28,8 @@ import AdminInventory from './components/dataBase/adminControl/AdminInventory'; 
 import ScrollToTop from './components/pages/home/ScrollToTop'; // استيراد الـ ScrollToTop الجديد
 // 1. استيراد صفحة تعديل الـ Hero اللي عملناها
 import EditHeroSection from "./components/dataBase/adminControl/EditHeroSection"; 
+import WishlistPage from './components/pages/display/WishListPage'; // استيراد صفحة المفضلة
+import AdminWishlist from './components/dataBase/adminControl/AdminWishllist';
 
 function AppContent({ session }) {
   const location = useLocation();
@@ -54,6 +56,7 @@ function AppContent({ session }) {
         <Route path="/slava" element={<AboutSlava />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/returns" element={<Returns />} />
+        <Route path="/favorites" element={<WishlistPage />} />
         <Route 
           path="/account" 
           element={session ? <ProfilePage user={session.user} /> : <AuthPage />} 
@@ -114,6 +117,15 @@ function AppContent({ session }) {
           element={
             <AdminGuard>
               <AdminInventory />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/wishlist" 
+          element={
+            <AdminGuard>
+              <AdminWishlist />
             </AdminGuard>
           } 
         />

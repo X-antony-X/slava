@@ -1,7 +1,7 @@
 import React from 'react';
 import { useCart } from './CartContext';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag } from 'lucide-react';
+import { Heart, ShoppingBag, Trash2 } from 'lucide-react'; // ضيف Trash2
 
 const WishlistPage = () => {
   const { wishlistItems, toggleWishlist, addToCart } = useCart();
@@ -14,25 +14,30 @@ const WishlistPage = () => {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {wishlistItems.map(item => (
-            <div key={item.id} className="group animate-in zoom-in-95 duration-300">
-              <div className="relative aspect-square overflow-hidden bg-[#f6f6f6] mb-3">
-                <img src={item.img} className="w-full h-full object-cover" />
-                <button 
-                  onClick={() => toggleWishlist(item)}
-                  className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
-                >
-                  <Heart size={18} className="fill-red-500 stroke-red-500" />
-                </button>
-              </div>
-              <h3 className="font-bold">{item.name}</h3>
-              <p className="text-gray-500 text-sm mb-2">{item.price} EGP</p>
-              <button 
-                onClick={() => addToCart(item)}
-                className="w-full border border-black py-2 rounded-full font-medium hover:bg-black hover:text-white transition-colors"
-              >
-                Add to Bag
-              </button>
-            </div>
+ <div key={item.id} className="group relative">
+  <div className="relative aspect-square overflow-hidden bg-[#f6f6f6] mb-3">
+    <img src={item.image_urls?.[0] || item.img} className="w-full h-full object-cover" />
+    
+    {/* زرار المسح السريع */}
+    <button 
+      onClick={() => toggleWishlist(item)}
+      className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-red-50 transition-colors"
+      title="Remove from favorites"
+    >
+      <Trash2 size={16} className="text-red-500" />
+    </button>
+  </div>
+  
+  <h3 className="font-bold text-sm uppercase">{item.name}</h3>
+  <p className="text-gray-500 text-sm mb-3">{item.price} EGP</p>
+  
+  <button 
+    onClick={() => addToCart(item)}
+    className="w-full bg-black text-white py-2.5 rounded-sm text-[11px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all"
+  >
+    Add to Bag
+  </button>
+</div>
           ))}
         </div>
       )}

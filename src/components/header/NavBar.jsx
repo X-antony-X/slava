@@ -243,7 +243,7 @@ const Navbar = () => {
                 <Search className="h-6 w-6" />
               </button>
 
-              <Link to="/wishlist" className="p-2 hover:bg-gray-100 rounded-full relative">
+              <Link to="/favorites" className="p-2 hover:bg-gray-100 rounded-full relative">
                 <Heart className="h-6 w-6" />
                 {wishlistItems?.length > 0 && <span className="absolute top-1 right-1 bg-black text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">{wishlistItems.length}</span>}
               </Link>

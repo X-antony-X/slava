@@ -1,57 +1,184 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from './CartContext';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Trash2, ShoppingBag, MessageCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { supabase } from "../../dataBase/supabaseClient"; 
+import toast, { Toaster } from 'react-hot-toast'; // استيراد التوست
 
 const CartPage = () => {
   const { cartItems, removeFromCart, totalPrice } = useCart();
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // 1. جلب بيانات المستخدم من السوبابيز عند تحميل الصفحة
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, address, phone')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) setUserData(data);
+      }
+    };
+    fetchUserProfile();
+  }, []);
+
+  // 2. دالة تجهيز وإرسال رسالة الواتساب
+  const handleCheckout = async () => {
+    setLoading(true);
+    const phoneNumber = "201279354981";
+    
+    // التأكد من وجود مستخدم
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLoading(false); // مهم نقفل اللودينج هنا
+      toast.error('Please login to complete your order', {
+        duration: 4000,
+        position: 'top-center',
+        style: {
+          borderRadius: '2px',
+          background: '#121212', // أسود شيك يماشى مع Slava
+          color: '#fff',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em'
+        },
+      });
+      return;
+    }
+
+    // تجهيز لستة المنتجات
+    const itemsList = cartItems.map((item, index) => {
+      const size = item.selectedSize ? ` [مقاس: ${item.selectedSize}]` : "";
+      return `${index + 1}. ${item.name}${size} - (x${item.quantity})`;
+    }).join('\n');
+
+    const customerInfo = userData ? (
+      `\n👤 بيانات الشحن:\n- الاسم: ${userData.full_name}\n- العنوان: ${userData.address}\n- التليفون: ${userData.phone}`
+    ) : `\n⚠️ تنبيه: العميل مسجل حساب لكن لم يكمل بيانات البروفايل.`;
+
+    const message = encodeURIComponent(
+      `أهلاً Slava، طلب جديد 🛒\n\n` +
+      `📦 المنتجات:\n${itemsList}\n\n` +
+      `💰 الإجمالي: ${totalPrice.toLocaleString()} EGP\n` +
+      `--------------------------` +
+      `${customerInfo}`
+    );
+
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    setLoading(false);
+  };
 
   if (cartItems.length === 0) return (
-    <div className="h-screen flex flex-col items-center justify-center gap-4">
-      <ShoppingBag size={64} className="text-gray-300" />
-      <h2 className="text-2xl font-bold">Your cart is empty</h2>
-      <Link to="/" className="bg-black text-white px-8 py-3 rounded-full">Shop Now</Link>
+    <div className="h-screen flex flex-col items-center justify-center gap-4 bg-white">
+      <ShoppingBag size={64} className="text-gray-200" />
+      <h2 className="text-2xl font-black uppercase italic tracking-tighter">Your bag is empty</h2>
+      <Link to="/" className="bg-black text-white px-10 py-4 rounded-sm font-bold uppercase text-xs tracking-[0.2em]">Back to Shop</Link>
     </div>
   );
 
   return (
-    <div className="max-w-[1200px] mx-auto p-4 md:p-10">
-      <h1 className="text-3xl font-bold mb-10">Bag</h1>
-      <div className="grid lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-6">
+    <div className="max-w-[1200px] mx-auto p-4 md:p-10 text-[#121212]">
+      {/* هتحط الـ Toaster هنا عشان يظهر في أي مكان في الصفحة */}
+      <Toaster /> 
+
+      <div className="flex items-center gap-4 mb-10">
+        <h1 className="text-3xl font-black italic uppercase tracking-tighter">Bag</h1>
+        <span className="text-gray-300 text-2xl">/ {cartItems.length} Items</span>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-12">
+        {/* قائمة المنتجات */}
+        <div className="lg:col-span-2 space-y-8">
           {cartItems.map(item => (
-            <div key={item.id} className="flex gap-4 border-b pb-6 animate-in fade-in slide-in-from-bottom-4">
-              <img src={item.img} className="w-24 h-24 md:w-40 md:h-40 object-cover bg-[#f6f6f6]" />
-              <div className="flex-1 space-y-1">
-                <div className="flex justify-between font-bold">
-                  <h3>{item.name}</h3>
-                  <p>{item.price.toLocaleString()} EGP</p>
+            <div key={item.id} className="flex gap-6 border-b border-gray-100 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div className="w-24 h-32 md:w-40 md:h-52 bg-gray-100 overflow-hidden rounded-sm flex-shrink-0 relative">
+  <img 
+    src={item.img || item.image || item.imageUrl} // جرب كل الاحتمالات
+    alt={item.name} 
+    className="w-full h-full object-cover block"
+    onError={(e) => {
+      e.target.src = "https://via.placeholder.com/400x600?text=No+Image"; // صورة بديلة لو الرابط باظ
+    }}
+  />
+</div>
+              
+              <div className="flex flex-col justify-between flex-1 py-1">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-bold text-base md:text-xl uppercase tracking-tight">{item.name}</h3>
+                    <p className="font-black text-sm md:text-lg">{item.price.toLocaleString()} <span className="text-[10px]">EGP</span></p>
+                  </div>
+                  <p className="text-gray-400 text-[10px] md:text-xs uppercase tracking-[0.2em]">{item.subCategory || 'Collection'}</p>
+                  {item.selectedSize && (
+                    <div className="flex items-center gap-2 mt-2">
+                       <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 rounded-sm uppercase">Size: {item.selectedSize}</span>
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">Qty: {item.quantity}</p>
                 </div>
-                <p className="text-gray-500">{item.subCategory}</p>
-                <p className="text-sm">Quantity: {item.quantity}</p>
-                <button onClick={() => removeFromCart(item.id)} className="text-red-500 pt-4 hover:underline flex items-center gap-1">
-                  <Trash2 size={16} /> Remove
+
+                <button 
+                  onClick={() => removeFromCart(item.id)} 
+                  className="w-fit text-gray-400 hover:text-red-600 transition-colors flex items-center gap-2 text-[10px] font-black uppercase tracking-widest mt-4"
+                >
+                  <Trash2 size={14} /> Remove Item
                 </button>
               </div>
             </div>
           ))}
         </div>
-        <div className="bg-gray-50 p-8 rounded-2xl h-fit sticky top-24">
-          <h2 className="text-xl font-bold mb-6">Summary</h2>
-          <div className="flex justify-between mb-4">
-            <span>Subtotal</span>
-            <span>{totalPrice.toLocaleString()} EGP</span>
+
+        {/* ملخص الطلب */}
+        <div className="h-fit sticky top-24">
+          <div className="bg-[#fcfcfc] border border-gray-100 p-8 rounded-sm shadow-sm">
+            <h2 className="text-xl font-black uppercase italic tracking-tight mb-8">Summary</h2>
+            
+            <div className="space-y-5">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 font-bold uppercase tracking-tighter">Subtotal</span>
+                <span className="font-black">{totalPrice.toLocaleString()} EGP</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500 font-bold uppercase tracking-tighter">Shipping</span>
+                <span className="text-[10px] font-black text-green-600 uppercase">Calculated in chat</span>
+              </div>
+              
+              <div className="pt-6 mt-6 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <span className="font-black text-xl uppercase italic">Total</span>
+                  <span className="font-black text-2xl">{totalPrice.toLocaleString()} EGP</span>
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleCheckout}
+              disabled={loading}
+              className="w-full bg-black text-white py-5 rounded-sm font-black mt-10 uppercase tracking-[0.2em] text-[11px] hover:bg-gray-800 transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="animate-spin" /> : (
+                <>Confirm via WhatsApp <MessageCircle size={18} fill="white" className="text-black" /></>
+              )}
+            </button>
+            
+            {userData && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-sm border-l-2 border-black">
+                <p className="text-[10px] font-black uppercase mb-1 text-gray-400 italic">Shipping To:</p>
+                <p className="text-[11px] font-bold truncate tracking-tight">{userData.full_name} • {userData.address}</p>
+              </div>
+            )}
           </div>
-          <div className="flex justify-between mb-6 pt-4 border-t font-bold text-lg">
-            <span>Total</span>
-            <span>{totalPrice.toLocaleString()} EGP</span>
-          </div>
-          <button className="w-full bg-black text-white py-4 rounded-full font-bold hover:opacity-80 transition-opacity">
-            Checkout
-          </button>
         </div>
       </div>
     </div>
   );
 };
+
 export default CartPage;
