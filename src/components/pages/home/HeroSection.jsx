@@ -9,11 +9,13 @@ const HeroSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
-  const videoRef = useRef(null);
+  
+  // 1. ضفنا Ref لفيديو الخلفية عشان نتحكم فيه هو كمان
+  const mainVideoRef = useRef(null);
+  const bgVideoRef = useRef(null);
 
   const IMAGE_DURATION = 5000;
 
-  // 1. جلب البيانات من Supabase
   useEffect(() => {
     const fetchHeroData = async () => {
       try {
@@ -48,7 +50,7 @@ const HeroSection = () => {
 
   const currentSlide = slides[currentIndex];
 
-  // 2. إدارة الـ Progress للصور
+  // إدارة الـ Progress للصور
   useEffect(() => {
     if (!isPlaying || !currentSlide || currentSlide.type !== 'image') return;
     const start = Date.now();
@@ -62,64 +64,80 @@ const HeroSection = () => {
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [currentIndex, isPlaying, slides]);
+  }, [currentIndex, isPlaying, currentSlide]);
 
-  // 3. إدارة الـ Progress للفيديو
+  // إدارة الـ Progress وتشغيل الفيديو
   useEffect(() => {
-    if (!currentSlide || currentSlide.type !== 'video' || !videoRef.current) return;
-    const video = videoRef.current;
+    if (!currentSlide || currentSlide.type !== 'video') return;
     
+    const mainVid = mainVideoRef.current;
+    const bgVid = bgVideoRef.current;
+    
+    if (!mainVid) return;
+
     const updateProgress = () => {
-      if (video.duration) {
-        setProgress((video.currentTime / video.duration) * 100);
+      if (mainVid.duration) {
+        setProgress((mainVid.currentTime / mainVid.duration) * 100);
       }
     };
+    
     const handleEnded = () => handleNext();
 
-    if (isPlaying) {
-      video.play().catch(() => {});
-    } else {
-      video.pause();
-    }
-
-    video.addEventListener('timeupdate', updateProgress);
-    video.addEventListener('ended', handleEnded);
-    return () => {
-      video.removeEventListener('timeupdate', updateProgress);
-      video.removeEventListener('ended', handleEnded);
+    // 2. دالة عشان تـ Handle تشغيل الفيديو بشكل آمن مع المتصفحات
+    const playVideos = async () => {
+      try {
+        if (isPlaying) {
+          if (bgVid) await bgVid.play();
+          await mainVid.play();
+        } else {
+          if (bgVid) bgVid.pause();
+          mainVid.pause();
+        }
+      } catch (err) {
+        console.warn("Autoplay was blocked or video isn't ready:", err);
+      }
     };
-  }, [currentIndex, isPlaying, slides]);
 
-  // شاشة تحميل بسيطة لحد ما الداتا تيجي
+    playVideos();
+
+    mainVid.addEventListener('timeupdate', updateProgress);
+    mainVid.addEventListener('ended', handleEnded);
+    
+    return () => {
+      mainVid.removeEventListener('timeupdate', updateProgress);
+      mainVid.removeEventListener('ended', handleEnded);
+    };
+  }, [currentIndex, isPlaying, currentSlide]);
+
   if (loading) return (
     <div className="h-screen w-full bg-black flex items-center justify-center">
       <Loader2 className="text-white animate-spin" size={40} />
     </div>
   );
 
-  // لو مفيش داتا خالص في الجدول
   if (slides.length === 0) return null;
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black text-white font-medium uppercase">
 
       {/* Background Layer */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-black"> {/* ضفنا لون أسود هنا عشان النقلة تكون سلسة */}
         {currentSlide.type === 'video' ? (
           <div className="relative h-full w-full flex items-center justify-center">
             <video
+              ref={bgVideoRef} // ربطنا الفيديو ده بالـ Ref
               key={`bg-${currentSlide.url}`}
-              muted playsInline autoPlay loop
-              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[100px]"
+              muted playsInline loop autoPlay
+              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[100px] transition-opacity duration-300"
             >
               <source src={currentSlide.url} type="video/mp4" />
             </video>
 
             <video
-              ref={videoRef}
+              ref={mainVideoRef} // عدلنا الاسم هنا لـ mainVideoRef
               key={`main-${currentSlide.url}`}
               muted playsInline autoPlay
-              className="relative z-10 h-full w-auto max-w-full object-contain"
+              className="absolute inset-0 z-10 w-full h-full object-cover transition-opacity duration-300"
             >
               <source src={currentSlide.url} type="video/mp4" />
             </video>
@@ -128,7 +146,7 @@ const HeroSection = () => {
           <div className="relative h-full w-full flex items-center justify-center">
             <img
               src={currentSlide.url}
-              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[100px]"
+              className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[100px] animate-pulse"
               alt=""
             />
             <img
@@ -166,7 +184,7 @@ const HeroSection = () => {
               cx="50%" cy="50%" r="45%" 
               stroke="white" strokeWidth="2" fill="none"
               strokeDasharray="100"
-              strokeDashoffset={100 - progress}
+              strokeDashoffset={100 - (progress || 0)}
               style={{ transition: 'stroke-dashoffset 0.1s linear' }}
               pathLength="100"
             />

@@ -32,9 +32,9 @@ const Footer = () => {
               Follow the Movement
             </span>
             <div className="flex gap-4">
-              <SocialLink href="#" icon={<Facebook size={24} />} label="Facebook" />
-              <SocialLink href="#" icon={<AtSign size={24} />} label="Threads" />
-              <SocialLink href="#" icon={<Instagram size={24} />} label="Instagram" />
+              <SocialLink href="https://www.facebook.com/slavaclothingstore?mibextid=rS40aB7S9Ucbxw6v" icon={<Facebook size={24} />} label="Facebook" />
+              <SocialLink href="https://www.threads.com/@slavaclothing" icon={<AtSign size={24} />} label="Threads" />
+              <SocialLink href="https://www.instagram.com/slavaclothing?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" icon={<Instagram size={24} />} label="Instagram" />
             </div>
           </div>
         </div>

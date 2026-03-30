@@ -3,6 +3,7 @@ import { supabase } from "../../dataBase/supabaseClient";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Scrollbar } from 'swiper/modules';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Swiper styles
 import 'swiper/css';
@@ -71,7 +72,7 @@ const CategorySection = () => {
             <div className="absolute inset-0 bg-black/20" />
             <div className="absolute inset-x-0 bottom-0 p-8 md:p-16 z-10 flex flex-col justify-end text-white">
               <h3 className="text-3xl md:text-5xl font-black uppercase mb-6 italic tracking-tighter">{slide.title}</h3>
-              <button className="self-start bg-white text-black font-bold px-8 py-3 rounded-full text-sm hover:bg-gray-200 transition uppercase tracking-widest">Shop</button>
+              <Link to="shop" className="self-start bg-white text-black font-bold px-8 py-3 rounded-full text-sm hover:bg-gray-200 transition uppercase tracking-widest">Shop</Link>
             </div>
           </div>
         ))}

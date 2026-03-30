@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 
 const CategoryPage = () => {
+  const [visibleProducts, setVisibleProducts] = useState(10); // عدد المنتجات اللي هتظهر حالياً
+  const [hasMore, setHasMore] = useState(true); // هل لسه فيه منتجات تانية؟
+  const [isFetchingMore, setIsFetchingMore] = useState(false); // عشان نظهر Loader صغير تحت
+
   const { categoryName } = useParams();
   const [searchParams] = useSearchParams();
   const filterType = searchParams.get('filter'); 
@@ -39,6 +43,12 @@ const CategoryPage = () => {
     setSelectedSize("");
     setSelectedColor("");
   };
+
+// ضيف ده عشان لما الفلاتر تتغير، نرجع نبدأ من أول 10 منتجات تاني
+useEffect(() => {
+  setVisibleProducts(10);
+  setHasMore(true);
+}, [categoryName, selectedPrice, selectedSize, selectedColor, activeSort]);
 
 const handleWhatsAppOrder = async (items, total) => {
   const itemsSummary = Array.isArray(items) 
@@ -86,6 +96,39 @@ const handleWhatsAppOrder = async (items, total) => {
     
     const msg = encodeURIComponent(`طلب جديد:\n${itemsSummary}\nالإجمالي: ${total} EGP`);
     window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
+  }
+};
+
+useEffect(() => {
+  const handleScroll = () => {
+    // لو بنحمل أصلاً أو مفيش منتجات زيادة، ميعملش حاجة
+    if (isFetchingMore || !hasMore) return;
+
+    // حسابات المسافة: لو المسافة من فوق + طول الشاشة >= طول الصفحة كلها - 500 بكسل
+    if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 500) {
+      loadMore();
+    }
+  };
+
+  window.addEventListener('scroll', handleScroll);
+  return () => window.removeEventListener('scroll', handleScroll);
+}, [isFetchingMore, hasMore, visibleProducts, products.length]);
+
+const loadMore = () => {
+  if (visibleProducts < products.length) {
+    setIsFetchingMore(true);
+    setTimeout(() => {
+      setVisibleProducts((prev) => {
+        const nextValue = prev + 10;
+        if (nextValue >= products.length) {
+          setHasMore(false); // لو وصلنا لآخر الداتا المتاحة نقفل الـ scroll
+        }
+        return nextValue;
+      });
+      setIsFetchingMore(false);
+    }, 800);
+  } else {
+    setHasMore(false);
   }
 };
 
@@ -438,35 +481,59 @@ useEffect(() => {
           </div>
         </div>
 
-        <main className="flex-1 pb-20">
-          {/* 🟢 استخدام الـ Skeleton أثناء التحميل */}
-          {loading ? (
-            <div className={`grid gap-x-4 gap-y-12 transition-all duration-700 ${mobileCols === 1 ? 'grid-cols-1' : 'grid-cols-2'} ${cols === 2 ? 'md:grid-cols-2' : cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
-              {[1, 2, 3, 4, 5, 6].map((n) => <ProductSkeleton key={n} />)}
-            </div>
-          ) : (
-            <div className={`grid gap-x-4 gap-y-12 transition-all duration-700 ${mobileCols === 1 ? 'grid-cols-1' : 'grid-cols-2'} ${cols === 2 ? 'md:grid-cols-2' : cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
-              {products.length > 0 ? (
-                products.map((item) => <ProductCard key={item.id} item={item} />)
-              ) : (
-                /* 🟢 2. حالة الفراغ (Empty State) الاحترافية */
-                <div className="col-span-full flex flex-col items-center justify-center py-24 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
-                  <PackageX size={64} strokeWidth={1} className="text-gray-300 mb-6" />
-                  <p className="text-gray-900 font-black text-xl md:text-2xl uppercase tracking-[0.1em] italic mb-3">No Drops Found</p>
-                  <p className="text-gray-400 font-medium text-xs md:text-sm uppercase tracking-widest mb-8 text-center max-w-md">
-                    We couldn't find any items matching your current filters.
-                  </p>
-                  <button 
-                    onClick={clearAllFilters} 
-                    className="flex items-center gap-2 bg-black text-white px-8 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg"
-                  >
-                    <RefreshCcw size={14} /> Clear All Filters
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </main>
+<main className="flex-1 pb-20">
+  {/* 🟢 استخدام الـ Skeleton أثناء التحميل الأولي فقط */}
+  {loading ? (
+    <div className={`grid gap-x-4 gap-y-12 transition-all duration-700 ${mobileCols === 1 ? 'grid-cols-1' : 'grid-cols-2'} ${cols === 2 ? 'md:grid-cols-2' : cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+      {[1, 2, 3, 4, 5, 6].map((n) => <ProductSkeleton key={n} />)}
+    </div>
+  ) : (
+    <div className="flex flex-col gap-12">
+      <div className={`grid gap-x-4 gap-y-12 transition-all duration-700 ${mobileCols === 1 ? 'grid-cols-1' : 'grid-cols-2'} ${cols === 2 ? 'md:grid-cols-2' : cols === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+        {products.length > 0 ? (
+          /* التعديل هنا: بنعرض فقط العدد المسموح بيه من المنتجات */
+          products.slice(0, visibleProducts).map((item) => (
+            <ProductCard key={item.id} item={item} />
+          ))
+        ) : (
+          /* حالة الفراغ (Empty State) */
+          <div className="col-span-full flex flex-col items-center justify-center py-24 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100">
+            <PackageX size={64} strokeWidth={1} className="text-gray-300 mb-6" />
+            <p className="text-gray-900 font-black text-xl md:text-2xl uppercase tracking-[0.1em] italic mb-3">No Drops Found</p>
+            <p className="text-gray-400 font-medium text-xs md:text-sm uppercase tracking-widest mb-8 text-center max-w-md">
+              We couldn't find any items matching your current filters.
+            </p>
+            <button 
+              onClick={clearAllFilters} 
+              className="flex items-center gap-2 bg-black text-white px-8 py-3.5 rounded-full text-xs font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-lg"
+            >
+              <RefreshCcw size={14} /> Clear All Filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 🔵 الـ Loader اللي بيظهر لما تنزل لآخر الصفحة ويحمل منتجات جديدة */}
+      {isFetchingMore && hasMore && (
+        <div className="flex justify-center py-10">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="animate-spin text-black" size={32} />
+            <span className="text-[10px] font-bold tracking-widest text-gray-400 uppercase">Loading More...</span>
+          </div>
+        </div>
+      )}
+
+      {/* اختياري: رسالة تظهر لما المنتجات تخلص خالص */}
+      {!hasMore && products.length > 0 && (
+        <div className="text-center py-10">
+          <p className="text-[10px] font-bold text-gray-300 tracking-[0.3em] uppercase italic">
+            — You've reached the end —
+          </p>
+        </div>
+      )}
+    </div>
+  )}
+</main>
       </div>
 
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">

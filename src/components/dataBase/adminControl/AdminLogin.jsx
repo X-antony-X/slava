@@ -15,11 +15,11 @@ const AdminLogin = () => {
       // 1. التأكد يدوياً إن الإيميل ده موجود في جدول البروفايلات وله صلاحية أدمن
       // ملاحظة: بما إن جدولك مفيهوش عمود إيميل حالياً، هنستخدم الـ full_name 
       // بس الأضمن مستقبلاً تضيف عمود الإيميل للجدول.
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('full_name', 'antony ishak') 
-        .single();
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('email', email.trim().toLowerCase()) // بنقارن بالإيميل المدخل وبنخليه lowercase
+            .single();
 
       if (profileError || !profile?.is_admin) {
         setMessage({ type: 'error', text: 'NOT AUTHORIZED: ADMIN PROFILE NOT FOUND' });
