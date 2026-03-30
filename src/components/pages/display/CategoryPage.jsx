@@ -40,7 +40,56 @@ const CategoryPage = () => {
     setSelectedColor("");
   };
 
-  useEffect(() => {
+const handleWhatsAppOrder = async (items, total) => {
+  const itemsSummary = Array.isArray(items) 
+    ? items.map(i => `${i.name} (x${i.quantity || 1})`).join(', ')
+    : items;
+
+  try {
+    // 1. جلب بيانات الجلسة الحالية للمستخدم
+    const { data: { session } } = await supabase.auth.getSession();
+    let customerName = 'Guest'; // القيمة الافتراضية
+
+    if (session?.user) {
+      // 2. جلب الاسم الكامل من جدول الـ profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (profile?.full_name) {
+        customerName = profile.full_name;
+      }
+    }
+
+    // 3. الحفظ في Supabase مع إرسال الاسم الحقيقي
+    const { error } = await supabase
+      .from('whatsapp_orders')
+      .insert([
+        { 
+          customer_name: customerName, // نرسل الاسم هنا بدلاً من تركه للقيمة الافتراضية
+          order_details: itemsSummary, 
+          total_price: total 
+        }
+      ]);
+
+    if (error) throw error;
+
+    // 4. التحويل للواتساب مع إضافة اسم العميل للرسالة
+    const msg = encodeURIComponent(`طلب جديد من: ${customerName}\n\nالمنتجات:\n${itemsSummary}\n\nالإجمالي: ${total} EGP`);
+    window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
+
+  } catch (err) {
+    console.error("Order Error:", err.message);
+    alert("حصلت مشكلة في التسجيل، بس تقدر تكمل طلبك على الواتساب عادي.");
+    
+    const msg = encodeURIComponent(`طلب جديد:\n${itemsSummary}\nالإجمالي: ${total} EGP`);
+    window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
+  }
+};
+
+useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
@@ -52,7 +101,10 @@ const CategoryPage = () => {
           query = query.gte('created_at', oneMonthAgo.toISOString());
         } 
         else if (categoryName && categoryName !== "all" && categoryName !== "shop") {
-          query = query.ilike('category', categoryName); 
+          const formattedCategory = categoryName.replace(/-/g, ' ').trim();
+          
+          // بنبحث عن الكلمة سواء كانت مفرد أو جمع أو جزء من النص
+          query = query.or(`category.ilike.%${formattedCategory}%,category.ilike.%${formattedCategory.replace(/s$/, '')}%`);
         }
 
         const { data, error } = await query;
@@ -173,17 +225,17 @@ const CategoryPage = () => {
   >
     Add to Cart
   </button>
-    {/* زرار اطلب الآن عبر الواتساب */}
-    <button 
-      onClick={(e) => {
-        e.stopPropagation();
-        const msg = encodeURIComponent(`أهلاً Slava، محتاج أطلب قطعة: ${item.name}\nالسعر: ${item.price} EGP`);
-        window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
-      }} 
-      className="w-full bg-green-600 text-white py-2 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
-    >
-      Order via WhatsApp
-    </button>
+  {/* زرار اطلب الآن عبر الواتساب */}
+  <button 
+    onClick={(e) => {
+      e.stopPropagation();
+      // الدالة دي كافية جداً، هي اللي هتخزن وتفتح الواتساب
+      handleWhatsAppOrder(item.name, item.price);
+    }} 
+    className="w-full bg-green-600 text-white py-2 text-[10px] font-black uppercase tracking-widest rounded-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+  >
+    Order via WhatsApp
+  </button>
   </div>
 </div>
         </div>
@@ -222,13 +274,12 @@ const CategoryPage = () => {
   <button 
     onClick={(e) => { 
       e.stopPropagation(); 
-      const msg = encodeURIComponent(`أهلاً Slava، محتاج أطلب: ${item.name} بـ ${item.price} EGP`);
-      window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
+      // بنبعت اسم المنتج وسعره فقط
+      handleWhatsAppOrder(item.name, item.price);
     }} 
     className="flex-[4] bg-black text-white flex items-center justify-center gap-1.5 active:bg-gray-900 transition-colors"
   >
     <span className="text-[9px] font-black uppercase italic tracking-tighter">Order Now</span>
-    {/* نقطة خضراء صغيرة كإشارة للواتساب */}
     <div className="w-1 h-1 bg-green-500 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.6)]" />
   </button>
 
@@ -443,9 +494,8 @@ const CategoryPage = () => {
   <div className="fixed bottom-20 left-4 right-4 z-50 md:hidden">
     <button 
       onClick={() => {
-        const itemsList = cartItems.map(i => `- ${i.name} (${i.quantity}x)`).join('\n');
-        const msg = encodeURIComponent(`طلب جديد من Slava:\n${itemsList}\nالإجمالي: ${totalPrice} EGP`);
-        window.open(`https://wa.me/201279354981?text=${msg}`, '_blank');
+        // نادى الدالة وابعتلها السلة كلها والإجمالي
+        handleWhatsAppOrder(cartItems, totalPrice);
       }}
       className="w-full bg-black text-white py-4 rounded-xl shadow-2xl flex items-center justify-between px-6 border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500"
     >

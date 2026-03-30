@@ -29,7 +29,12 @@ import ScrollToTop from './components/pages/home/ScrollToTop'; // استيراد
 // 1. استيراد صفحة تعديل الـ Hero اللي عملناها
 import EditHeroSection from "./components/dataBase/adminControl/EditHeroSection"; 
 import WishlistPage from './components/pages/display/WishListPage'; // استيراد صفحة المفضلة
-import AdminWishlist from './components/dataBase/adminControl/AdminWishllist';
+import AdminWishlist from './components/dataBase/adminControl/AdminWishlist';
+import ManageHeader from './components/dataBase/adminControl/ManageHeader';
+import EditProduct from './components/dataBase/adminControl/EditProduct';
+import UsersPage from './components/dataBase/adminControl/UsersPage';
+import AdminOrders from './components/dataBase/adminControl/AdminOrders';
+import AddAdmin from './components/dataBase/adminControl/AddAdmin';
 
 function AppContent({ session }) {
   const location = useLocation();
@@ -122,10 +127,55 @@ function AppContent({ session }) {
         />
 
         <Route 
-          path="/admin/wishlist" 
+          path="/admin/favorites" 
           element={
             <AdminGuard>
               <AdminWishlist />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/header" 
+          element={
+            <AdminGuard>
+              <ManageHeader />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/edit-product" 
+          element={
+            <AdminGuard>
+              <EditProduct />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/users" 
+          element={
+            <AdminGuard>
+              <UsersPage />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/orders" 
+          element={
+            <AdminGuard>
+              <AdminOrders />
+            </AdminGuard>
+          } 
+        />
+
+        <Route 
+          path="/admin/add-admin" 
+          element={
+            <AdminGuard>
+              <AddAdmin />
             </AdminGuard>
           } 
         />
@@ -178,3 +228,8 @@ function App() {
 }
 
 export default App;
+
+// https://slava-chi.vercel.app/account
+// https://slava-chi.vercel.app/account
+
+// http://localhost:5173/admin-dashboard

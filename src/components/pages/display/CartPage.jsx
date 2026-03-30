@@ -3,78 +3,112 @@ import { useCart } from './CartContext';
 import { Trash2, ShoppingBag, MessageCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from "../../dataBase/supabaseClient"; 
-import toast, { Toaster } from 'react-hot-toast'; // استيراد التوست
+import toast, { Toaster } from 'react-hot-toast';
 
 const CartPage = () => {
   const { cartItems, removeFromCart, totalPrice } = useCart();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // 1. جلب بيانات المستخدم من السوبابيز عند تحميل الصفحة
+  // 1. جلب بيانات المستخدم عند تحميل الصفحة
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      // استخدام getSession لتجنب مشاكل الـ Lock في المتصفح
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session?.user) {
         const { data, error } = await supabase
           .from('profiles')
           .select('full_name, address, phone')
-          .eq('id', user.id)
+          .eq('id', session.user.id)
           .single();
         
         if (data) setUserData(data);
+        if (error) console.error("Error fetching profile:", error);
       }
     };
     fetchUserProfile();
   }, []);
 
-  // 2. دالة تجهيز وإرسال رسالة الواتساب
+  // 2. دالة الحفظ في قاعدة البيانات والتحويل للواتساب
   const handleCheckout = async () => {
     setLoading(true);
     const phoneNumber = "201279354981";
     
-    // التأكد من وجود مستخدم
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
+      // التأكد من حالة تسجيل الدخول
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user) {
-      setLoading(false); // مهم نقفل اللودينج هنا
-      toast.error('Please login to complete your order', {
-        duration: 4000,
-        position: 'top-center',
-        style: {
-          borderRadius: '2px',
-          background: '#121212', // أسود شيك يماشى مع Slava
-          color: '#fff',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          textTransform: 'uppercase',
-          letterSpacing: '0.1em'
-        },
-      });
-      return;
+      if (!session) {
+        setLoading(false);
+        toast.error('Please login to complete your order', {
+          duration: 4000,
+          position: 'top-center',
+          style: {
+            borderRadius: '2px',
+            background: '#121212',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em'
+          },
+        });
+        return;
+      }
+
+      // تجهيز قائمة المنتجات (للحفظ في الداتابيز ولرسالة الواتساب)
+      const itemsList = cartItems.map((item, index) => {
+        const size = item.selectedSize ? ` [Size: ${item.selectedSize}]` : "";
+        return `${index + 1}. ${item.name}${size} - (x${item.quantity})`;
+      }).join('\n');
+
+      // تحديد اسم العميل (الأولوية للاسم في البروفايل ثم الإيميل)
+      const finalCustomerName = userData?.full_name || session.user.email || 'Registered User';
+
+      // --- الخطوة الجديدة: الحفظ في Supabase ---
+      const { error: dbError } = await supabase
+        .from('whatsapp_orders')
+        .insert([
+          { 
+            customer_name: finalCustomerName, 
+            order_details: itemsList, 
+            total_price: totalPrice,
+            status: 'pending' 
+          }
+        ]);
+
+      if (dbError) {
+        console.error("Database Save Error:", dbError);
+        // لا نوقف العملية هنا لضمان إتمام البيعة عبر واتساب حتى لو فشل التسجيل الرقمي
+      }
+
+      // تجهيز معلومات الشحن للرسالة
+      const customerInfo = userData ? (
+        `\n👤 بيانات الشحن:\n- الاسم: ${userData.full_name}\n- العنوان: ${userData.address}\n- التليفون: ${userData.phone}`
+      ) : `\n⚠️ تنبيه: العميل مسجل حساب لكن لم يكمل بيانات البروفايل.`;
+
+      const message = encodeURIComponent(
+        `أهلاً Slava، طلب جديد 🛒\n\n` +
+        `📦 المنتجات:\n${itemsList}\n\n` +
+        `💰 الإجمالي: ${totalPrice.toLocaleString()} EGP\n` +
+        `--------------------------` +
+        `${customerInfo}`
+      );
+
+      // فتح الواتساب
+      window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+      toast.success('Order Processed Successfully!');
+
+    } catch (err) {
+      console.error("Checkout Error:", err);
+      toast.error("An error occurred, but you can still order via WhatsApp.");
+    } finally {
+      setLoading(false);
     }
-
-    // تجهيز لستة المنتجات
-    const itemsList = cartItems.map((item, index) => {
-      const size = item.selectedSize ? ` [مقاس: ${item.selectedSize}]` : "";
-      return `${index + 1}. ${item.name}${size} - (x${item.quantity})`;
-    }).join('\n');
-
-    const customerInfo = userData ? (
-      `\n👤 بيانات الشحن:\n- الاسم: ${userData.full_name}\n- العنوان: ${userData.address}\n- التليفون: ${userData.phone}`
-    ) : `\n⚠️ تنبيه: العميل مسجل حساب لكن لم يكمل بيانات البروفايل.`;
-
-    const message = encodeURIComponent(
-      `أهلاً Slava، طلب جديد 🛒\n\n` +
-      `📦 المنتجات:\n${itemsList}\n\n` +
-      `💰 الإجمالي: ${totalPrice.toLocaleString()} EGP\n` +
-      `--------------------------` +
-      `${customerInfo}`
-    );
-
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
-    setLoading(false);
   };
 
+  // حالة السلة الفارغة
   if (cartItems.length === 0) return (
     <div className="h-screen flex flex-col items-center justify-center gap-4 bg-white">
       <ShoppingBag size={64} className="text-gray-200" />
@@ -85,7 +119,6 @@ const CartPage = () => {
 
   return (
     <div className="max-w-[1200px] mx-auto p-4 md:p-10 text-[#121212]">
-      {/* هتحط الـ Toaster هنا عشان يظهر في أي مكان في الصفحة */}
       <Toaster /> 
 
       <div className="flex items-center gap-4 mb-10">
@@ -98,16 +131,14 @@ const CartPage = () => {
         <div className="lg:col-span-2 space-y-8">
           {cartItems.map(item => (
             <div key={item.id} className="flex gap-6 border-b border-gray-100 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-<div className="w-24 h-32 md:w-40 md:h-52 bg-gray-100 overflow-hidden rounded-sm flex-shrink-0 relative">
-  <img 
-    src={item.img || item.image || item.imageUrl} // جرب كل الاحتمالات
-    alt={item.name} 
-    className="w-full h-full object-cover block"
-    onError={(e) => {
-      e.target.src = "https://via.placeholder.com/400x600?text=No+Image"; // صورة بديلة لو الرابط باظ
-    }}
-  />
-</div>
+              <div className="w-24 h-32 md:w-40 md:h-52 bg-gray-100 overflow-hidden rounded-sm flex-shrink-0 relative">
+                <img 
+                  src={item.img || item.image || item.imageUrl} 
+                  alt={item.name} 
+                  className="w-full h-full object-cover block"
+                  onError={(e) => { e.target.src = "https://via.placeholder.com/400x600?text=No+Image"; }}
+                />
+              </div>
               
               <div className="flex flex-col justify-between flex-1 py-1">
                 <div className="space-y-2">

@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient'; 
-import { Check, Plus, Upload, Loader2, Delete } from 'lucide-react'; 
+import { Check, Plus, Upload, Loader2 } from 'lucide-react'; 
 import DeleteUser from './DeleteUser';
 
 const AddProductForm = () => {
   const [loading, setLoading] = useState(false);
+  const [dbCategories, setDbCategories] = useState([]); // الأقسام اللي جاية من الداتا بيز
   const [product, setProduct] = useState({
     name: '',
-    category: 'hoodie',
+    category: '', // هنسيبها فاضية لحد ما الداتا تحمل
     price: '',
     colors: [], 
     sizes: [], 
@@ -16,7 +17,6 @@ const AddProductForm = () => {
   const [images, setImages] = useState([]);
   const [customColor, setCustomColor] = useState('#121212');
 
-  const categories = ['hoodie', 'jacket', 't-shirt', 'shirt', 'pullover', 'pants', 'sweatpants', 'shorts'];
   const availableSizes = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 
   const presetColors = [
@@ -28,6 +28,30 @@ const AddProductForm = () => {
     { name: 'Green', hex: '#10B981' },
     { name: 'Beige', hex: '#F5F5DC' },
   ];
+
+  // Fetch Categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('navbar_categories')
+        .select('name');
+
+      if (error) {
+        console.error("Error fetching categories:", error);
+      } else if (data) {
+        // بنحول الأسماء لـ lowercase عشان التناسق في السيستم عندك
+        const fetchedCats = data.map(cat => cat.name.toLowerCase());
+        setDbCategories(fetchedCats);
+        
+        // خلي أول قسم هو الـ default اللي متختار في الـ select
+        if (fetchedCats.length > 0) {
+          setProduct(prev => ({ ...prev, category: fetchedCats[0] }));
+        }
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleSizeChange = (size) => {
     setProduct(prev => ({
@@ -89,7 +113,13 @@ const AddProductForm = () => {
       if (dbError) throw dbError;
 
       alert("🎉 Drop Published Successfully!");
-      setProduct({ name: '', category: 'hoodie', price: '', colors: [], sizes: [] });
+      setProduct({ 
+        name: '', 
+        category: dbCategories[0] || '', 
+        price: '', 
+        colors: [], 
+        sizes: [] 
+      });
       setImages([]);
       e.target.reset();
 
@@ -131,7 +161,15 @@ const AddProductForm = () => {
               className="border-2 border-gray-100 p-4 rounded-xl outline-none cursor-pointer focus:border-black font-bold"
               onChange={(e) => setProduct({...product, category: e.target.value})}
             >
-              {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
+              {dbCategories.length > 0 ? (
+                dbCategories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat.toUpperCase()}
+                  </option>
+                ))
+              ) : (
+                <option disabled>Loading categories...</option>
+              )}
             </select>
           </div>
 
@@ -152,7 +190,6 @@ const AddProductForm = () => {
         <div className="flex flex-col gap-4">
           <label className="font-bold text-[12px] uppercase tracking-widest text-gray-400">Available Colors</label>
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-y-6 gap-x-2">
-            {/* Preset Colors */}
             {presetColors.map((col) => {
               const isSelected = product.colors.includes(col.name);
               return (
@@ -176,7 +213,6 @@ const AddProductForm = () => {
               );
             })}
 
-            {/* Custom Color Picker Improved */}
             <div className="flex flex-col items-center gap-2">
               <div className="relative w-10 h-10 group">
                 <input
@@ -212,7 +248,6 @@ const AddProductForm = () => {
             </div>
           </div>
           
-          {/* Display selected custom hex codes if any (Optional visual aid) */}
           <div className="flex flex-wrap gap-2 mt-2">
             {product.colors.filter(c => c.startsWith('#')).map(hex => (
               <div key={hex} className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded text-[10px] font-bold">
@@ -262,7 +297,7 @@ const AddProductForm = () => {
             <div className="flex flex-wrap gap-2 mt-2">
               {images.map((img, idx) => (
                 <div key={idx} className="text-[10px] bg-black text-white px-2 py-1 rounded-md font-bold uppercase">
-                   IMAGE {idx + 1} SELECTED
+                    IMAGE {idx + 1} SELECTED
                 </div>
               ))}
             </div>

@@ -3,7 +3,6 @@ import { supabase } from "../supabaseClient";
 import { Upload, Loader2, CheckCircle, Image as ImageIcon } from 'lucide-react';
 
 const EditSecondSection = () => {
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
   return (
@@ -52,6 +51,19 @@ const BannerEditor = ({ id, label }) => {
     try {
       setUploading(true);
       const file = e.target.files[0];
+      if (!file) return;
+
+      // تنظيف الـ Storage قبل الرفع الجديد
+      if (imgUrl) {
+        try {
+          const urlParts = imgUrl.split('/hero-content/');
+          const oldPath = urlParts[1]; 
+          if (oldPath) {
+            await supabase.storage.from('hero-content').remove([oldPath]);
+          }
+        } catch (err) { console.error("Clean error:", err.message); }
+      }
+
       const fileExt = file.name.split('.').pop();
       const fileName = `banner-${id}-${Math.random()}.${fileExt}`;
       const filePath = `banners/${fileName}`;
@@ -60,10 +72,16 @@ const BannerEditor = ({ id, label }) => {
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('hero-content').getPublicUrl(filePath);
+      
       setImgUrl(publicUrl);
+      await supabase.from('secondary_banners').upsert({ 
+        id, 
+        title, 
+        description: desc, 
+        image_url: publicUrl 
+      });
 
-      await supabase.from('secondary_banners').upsert({ id, title, description: desc, image_url: publicUrl });
-      alert(`${label} Updated!`);
+      alert(`${label} Updated Successfully!`);
     } catch (error) {
       alert(error.message);
     } finally {
@@ -72,10 +90,21 @@ const BannerEditor = ({ id, label }) => {
   };
 
   const saveText = async () => {
-    setUploading(true);
-    await supabase.from('secondary_banners').upsert({ id, title, description: desc, image_url: imgUrl });
-    setUploading(false);
-    alert("Text content saved!");
+    try {
+      setUploading(true);
+      const { error } = await supabase.from('secondary_banners').upsert({ 
+        id, 
+        title, 
+        description: desc, 
+        image_url: imgUrl 
+      });
+      if (error) throw error;
+      alert("Text data synced!");
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -85,9 +114,15 @@ const BannerEditor = ({ id, label }) => {
         <h3 className="text-lg font-bold italic uppercase">{label}</h3>
       </div>
 
+      {/* الإطار اللي بيحتوي الصورة */}
       <div className="relative aspect-[4/5] bg-black mb-6 border border-slate-800 overflow-hidden group">
         {imgUrl ? (
-          <img src={imgUrl} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700" />
+          <img 
+            src={imgUrl} 
+            alt="Preview" 
+            /* object-fill: بتخلي الصورة تتمدد وتملأ المساحة بالظبط بدون قص */
+            className="w-full h-full object-fill opacity-90 transition-opacity duration-500" 
+          />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-700">
             <ImageIcon size={48} strokeWidth={1} />
@@ -97,7 +132,7 @@ const BannerEditor = ({ id, label }) => {
         
         <label className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
           <Upload className="text-cyan-400 mb-2" size={30} />
-          <span className="text-[10px] font-black uppercase tracking-widest">Update Visual</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-white">Update Visual</span>
           <input type="file" className="hidden" onChange={handleUpload} disabled={uploading} />
         </label>
       </div>
@@ -107,7 +142,7 @@ const BannerEditor = ({ id, label }) => {
           <label className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Headline</label>
           <input 
             value={title} onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-slate-800 p-4 text-sm focus:border-cyan-500 outline-none transition-all uppercase italic font-bold"
+            className="w-full bg-[#0a0a0a] border border-slate-800 p-4 text-sm focus:border-cyan-500 outline-none transition-all uppercase italic font-bold text-white placeholder:text-slate-700"
             placeholder="E.G. GYM ESSENTIALS"
           />
         </div>
