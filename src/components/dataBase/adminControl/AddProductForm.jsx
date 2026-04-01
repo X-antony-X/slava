@@ -10,6 +10,7 @@ const AddProductForm = () => {
     name: '',
     category: '', // هنسيبها فاضية لحد ما الداتا تحمل
     price: '',
+    quantity: '',
     colors: [], 
     sizes: [], 
   });
@@ -104,6 +105,7 @@ const AddProductForm = () => {
             name: product.name,
             category: product.category,
             price: parseFloat(product.price),
+            quantity: parseInt(product.quantity), // <--- أضفنا دي هنا (بتحويلها لرقم)
             colors: product.colors,
             sizes: product.sizes,
             image_urls: uploadedImageUrls,
@@ -182,6 +184,18 @@ const AddProductForm = () => {
               placeholder="0.00"
               className="border-2 border-gray-100 p-4 rounded-xl outline-none focus:border-black font-bold"
               onChange={(e) => setProduct({...product, price: e.target.value})}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="font-bold text-[12px] uppercase tracking-widest text-gray-400">Stock Quantity</label>
+            <input 
+              type="number" 
+              required
+              value={product.quantity}
+              placeholder="100"
+              className="border-2 border-gray-100 p-4 rounded-xl outline-none focus:border-black font-bold"
+              onChange={(e) => setProduct({...product, quantity: e.target.value})}
             />
           </div>
         </div>

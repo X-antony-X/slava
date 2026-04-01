@@ -1,19 +1,34 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Search, Edit, Trash2, X, Save, Loader2, Tag } from 'lucide-react';
+import { Search, Edit, Trash2, X, Save, Loader2, Plus, Image as ImageIcon } from 'lucide-react';
+
+// الثوابت يفضل تكون بره الـ Component
+const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
+const PREDEFINED_COLORS = [
+  { name: 'Black', hex: '#000000' },
+  { name: 'Blue', hex: '#1E40AF' },
+  { name: 'Grey', hex: '#6B7280' },
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Green', hex: '#10B981' },
+  { name: 'Beige', hex: '#F5F5DC' },
+];
 
 const EditProduct = () => {
+  const [customColor, setCustomColor] = useState("#000000");
+  const [showConfirm, setShowConfirm] = useState(false);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [categories, setCategories] = useState(['All']);
   
-  // State for Edit Modal
   const [editingProduct, setEditingProduct] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
+  
+  // مدخلات مؤقتة
+  const [newSize, setNewSize] = useState('');
 
-  // 1. جلب المنتجات والأقسام
   const fetchProducts = async () => {
     setLoading(true);
     try {
@@ -23,10 +38,7 @@ const EditProduct = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
       setProducts(data || []);
-      
-      // استخراج الأقسام المتاحة من المنتجات نفسها
       const uniqueCategories = ['All', ...new Set(data.map(p => p.category))];
       setCategories(uniqueCategories);
     } catch (error) {
@@ -40,60 +52,102 @@ const EditProduct = () => {
     fetchProducts();
   }, []);
 
-  // 2. دالة الحذف
-  const handleDelete = async (id) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this drop?");
-    if (!confirmDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      // تحديث الواجهة بعد الحذف
-      setProducts(products.filter(p => p.id !== id));
-      alert("Product deleted successfully!");
-    } catch (error) {
-      console.error("Error deleting:", error.message);
-      alert("Failed to delete product.");
-    }
+  const addItem = (field, value) => {
+    if (!value) return;
+    setEditingProduct({
+      ...editingProduct,
+      [field]: [...(editingProduct[field] || []), value]
+    });
   };
 
-  // 3. دالة تحديث المنتج
-  const handleUpdate = async (e) => {
-    e.preventDefault();
+  const removeItem = (field, index) => {
+    const updatedArray = editingProduct[field].filter((_, i) => i !== index);
+    setEditingProduct({ ...editingProduct, [field]: updatedArray });
+  };
+
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
     setUpdateLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({
-          name: editingProduct.name,
-          category: editingProduct.category,
-          price: parseFloat(editingProduct.price),
-          old_price: editingProduct.old_price ? parseFloat(editingProduct.old_price) : null,
-          is_available: editingProduct.is_available
-        })
-        .eq('id', editingProduct.id);
+      const uploadPromises = files.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
-      if (error) throw error;
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, file);
 
-      // تحديث البيانات في الصفحة وقفل الـ Modal
-      setProducts(products.map(p => p.id === editingProduct.id ? editingProduct : p));
-      setEditingProduct(null);
-      alert("Product updated successfully!");
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        return data.publicUrl;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setEditingProduct(prev => ({
+        ...prev,
+        image_urls: [...(prev.image_urls || []), ...uploadedUrls]
+      }));
     } catch (error) {
-      console.error("Error updating:", error.message);
-      alert("Failed to update product.");
+      alert("Upload failed: " + error.message);
     } finally {
       setUpdateLoading(false);
     }
   };
 
-  // 4. فلترة المنتجات بناءً على البحث والقسم
+const handleUpdate = async (e) => {
+  e.preventDefault();
+  setUpdateLoading(true);
+
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: editingProduct.name,
+        category: editingProduct.category,
+        price: parseFloat(editingProduct.price),
+        quantity: parseInt(editingProduct.quantity), // <--- أضف السطر ده هنا
+        old_price: editingProduct.old_price ? parseFloat(editingProduct.old_price) : null,
+        is_available: editingProduct.is_available,
+        sizes: editingProduct.sizes,
+        colors: editingProduct.colors,
+        image_urls: editingProduct.image_urls
+      })
+      .eq('id', editingProduct.id);
+
+    if (error) throw error;
+    // ... باقي الكود
+
+      if (error) throw error;
+
+      setProducts(products.map(p => p.id === editingProduct.id ? editingProduct : p));
+      setEditingProduct(null);
+      alert("Product Updated Successfully! 🔥");
+    } catch (error) {
+      console.error("Error updating:", error.message);
+      alert("Update failed. Check console for details.");
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure?")) return;
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) throw error;
+      setProducts(products.filter(p => p.id !== id));
+    } catch (error) {
+      alert("Delete failed.");
+    }
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
@@ -102,170 +156,185 @@ const EditProduct = () => {
 
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-8 font-sans text-black mb-20">
+      {/* Search & Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
         <div>
-          <h2 className="text-3xl font-black italic uppercase tracking-tight">
-            Manage Drops <span className="text-gray-300">/ slava</span>
-          </h2>
-          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-2">
-            Total Inventory: {products.length} Items
-          </p>
+          <h2 className="text-3xl font-black italic uppercase tracking-tight">Manage Drops <span className="text-gray-300">/ slava</span></h2>
+          <p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-2">Inventory: {products.length} Items</p>
         </div>
-
-        {/* Search & Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="SEARCH DROPS..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl outline-none focus:border-black font-bold text-sm uppercase w-full sm:w-64 transition-all"
-            />
+            <input type="text" placeholder="SEARCH..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-3 border-2 border-gray-100 rounded-xl outline-none focus:border-black font-bold text-sm w-full sm:w-64 transition-all" />
           </div>
-          <select 
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-4 py-3 border-2 border-gray-100 rounded-xl outline-none focus:border-black font-bold text-sm uppercase cursor-pointer transition-all"
-          >
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="px-4 py-3 border-2 border-gray-100 rounded-xl outline-none focus:border-black font-bold text-sm uppercase cursor-pointer">
+            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Products Grid */}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="animate-spin h-10 w-10 text-gray-300" />
-        </div>
-      ) : filteredProducts.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-100">
-          <Tag className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="font-bold text-gray-400 uppercase tracking-widest">No products found</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map(product => (
-            <div key={product.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all group relative">
-              {/* Image */}
-              <div className="aspect-[4/5] bg-gray-100 relative overflow-hidden">
-                {product.image_urls && product.image_urls.length > 0 ? (
-                  <img 
-                    src={product.image_urls[0]} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-300 font-bold text-xs uppercase">No Image</div>
-                )}
-                {!product.is_available && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-widest">
-                    Sold Out
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-5">
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">{product.category}</p>
-                <h3 className="font-black text-lg uppercase truncate">{product.name}</h3>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="font-bold">{product.price} EGP</p>
-                  {product.old_price && (
-                    <p className="text-gray-400 line-through text-sm font-bold">{product.old_price} EGP</p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 mt-6">
-                  <button 
-                    onClick={() => setEditingProduct(product)}
-                    className="flex-1 bg-gray-50 hover:bg-gray-100 border border-gray-100 text-black py-2 rounded-xl flex justify-center items-center gap-2 font-bold text-xs uppercase transition-colors"
-                  >
-                    <Edit className="h-4 w-4" /> Edit
-                  </button>
-                  <button 
-                    onClick={() => handleDelete(product.id)}
-                    className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl flex justify-center items-center gap-2 font-bold text-xs uppercase transition-colors"
-                  >
-                    <Trash2 className="h-4 w-4" /> Delete
-                  </button>
-                </div>
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredProducts.map(product => (
+          <div key={product.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm group">
+            <div className="aspect-[4/5] bg-gray-100 relative">
+              <img src={product.image_urls?.[0]} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              {!product.is_available && <div className="absolute top-4 right-4 bg-red-500 text-white text-[10px] font-black px-2 py-1 rounded uppercase">Sold Out</div>}
+            </div>
+            <div className="p-5">
+              <h3 className="font-black text-lg uppercase truncate">{product.name}</h3>
+              <p className="font-bold text-gray-500">{product.price} EGP</p>
+              <div className="flex gap-2 mt-4">
+                <button onClick={() => setEditingProduct(product)} className="flex-1 bg-gray-50 hover:bg-gray-100 py-2 rounded-xl flex justify-center items-center gap-2 font-bold text-xs uppercase"><Edit className="h-4 w-4" /> Edit</button>
+                <button onClick={() => handleDelete(product.id)} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-xl flex justify-center items-center gap-2 font-bold text-xs uppercase"><Trash2 className="h-4 w-4" /> Delete</button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
 
-      {/* Edit Modal Overlay */}
+      {/* Edit Modal */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-8 relative shadow-2xl animate-in fade-in zoom-in duration-200">
-            <button 
-              onClick={() => setEditingProduct(null)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-black transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl w-full max-w-2xl p-6 md:p-10 relative shadow-2xl my-auto">
+            <button onClick={() => setEditingProduct(null)} className="absolute top-6 right-6 text-gray-400 hover:text-black"><X className="h-6 w-6" /></button>
+            <h3 className="text-2xl font-black italic uppercase mb-8">Update Product Details</h3>
             
-            <h3 className="text-2xl font-black italic uppercase mb-6 tracking-tight">Edit Drop</h3>
-            
-            <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+            <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Name</label>
-                <input 
-                  type="text" 
-                  value={editingProduct.name}
-                  onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
-                  className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold"
-                  required
-                />
+                <label className="text-[10px] font-bold uppercase text-gray-400">Product Name</label>
+                <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" required />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Price</label>
-                  <input 
-                    type="number" 
-                    value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})}
-                    className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold"
-                    required
-                  />
+{/* تعديل قسم الأسعار والكمية */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2"> 
+  <div className="flex flex-col gap-1">
+    <label className="text-[10px] font-bold uppercase text-gray-400">Price</label>
+    <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" required />
+  </div>
+  
+  <div className="flex flex-col gap-1">
+    <label className="text-[10px] font-bold uppercase text-gray-400">Old Price</label>
+    <input type="number" value={editingProduct.old_price || ''} onChange={(e) => setEditingProduct({...editingProduct, old_price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" />
+  </div>
+
+  <div className="flex flex-col gap-1">
+    <label className="text-[10px] font-bold uppercase text-gray-400">Quantity (Stock)</label>
+    <input 
+      type="number" 
+      value={editingProduct.quantity || 0} 
+      onChange={(e) => setEditingProduct({...editingProduct, quantity: e.target.value})} 
+      className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" 
+      required 
+    />
+  </div>
+</div>
+
+              {/* Sizes Select */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold uppercase text-gray-400">Sizes</label>
+                <select 
+                  onChange={(e) => {
+                    if (e.target.value && !editingProduct.sizes?.includes(e.target.value)) addItem('sizes', e.target.value);
+                    e.target.value = "";
+                  }}
+                  className="border-2 border-gray-100 p-2 rounded-lg outline-none focus:border-black text-sm font-bold bg-white"
+                >
+                  <option value="">Add Size...</option>
+                  {AVAILABLE_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <div className="flex flex-wrap gap-2">
+                  {editingProduct.sizes?.map((s, i) => (
+                    <span key={i} className="bg-black text-white px-3 py-1 rounded-md text-xs font-black flex items-center gap-2">
+                      {s} <X className="h-3 w-3 cursor-pointer" onClick={() => removeItem('sizes', i)} />
+                    </span>
+                  ))}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Old Price (Optional)</label>
-                  <input 
-                    type="number" 
-                    value={editingProduct.old_price || ''}
-                    onChange={(e) => setEditingProduct({...editingProduct, old_price: e.target.value})}
-                    className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold"
-                  />
+              </div>
+
+              {/* Colors Picker */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold uppercase text-gray-400">Colors</label>
+<div className="flex flex-wrap items-center gap-3">
+  {/* الألوان المحددة مسبقاً */}
+  {PREDEFINED_COLORS.map((c) => (
+    <button
+      key={c.name}
+      type="button"
+      onClick={() => { if(!editingProduct.colors?.includes(c.name)) addItem('colors', c.name); }}
+      className={`h-6 w-6 rounded-full border-2 transition-all ${editingProduct.colors?.includes(c.name) ? 'border-black scale-110 shadow-sm' : 'border-gray-200 hover:scale-105'}`}
+      style={{ backgroundColor: c.hex }}
+      title={c.name}
+    />
+  ))}
+
+  {/* زرار إضافة لون مخصص (Custom Color) */}
+  <div className="flex flex-col items-center gap-1 group relative">
+    <div 
+      className="h-7 w-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center cursor-pointer hover:border-black transition-colors"
+      onClick={() => document.getElementById('customColorInput').click()}
+      style={{ backgroundColor: customColor }}
+    >
+      <span className={`text-lg font-light ${customColor === '#ffffff' ? 'text-black' : 'text-white'}`}>+</span>
+    </div>
+    
+    {/* Input مخفي */}
+    <input 
+      id="customColorInput"
+      type="color" 
+      value={customColor}
+      onChange={(e) => {
+        setCustomColor(e.target.value);
+        setShowConfirm(true); // نظهر كلمة confirm لما يختار لون
+      }}
+      className="absolute invisible"
+    />
+
+    {/* زرار التأكيد اللي هيظهر بعد اختيار اللون */}
+    {showConfirm && (
+      <button
+        type="button"
+        onClick={() => {
+          if(!editingProduct.colors?.includes(customColor)) {
+            addItem('colors', customColor);
+            setShowConfirm(false); // نخفيه تاني بعد الإضافة
+          }
+        }}
+        className="text-[10px] font-black uppercase tracking-tighter border-b border-black leading-none mt-1 animate-pulse"
+      >
+        Confirm
+      </button>
+    )}
+  </div>
+</div>
+                <div className="flex flex-wrap gap-2">
+                  {editingProduct.colors?.map((c, i) => (
+                    <span key={i} className="border-2 border-gray-100 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1">
+                      {c} <X className="h-3 w-3 cursor-pointer text-red-500" onClick={() => removeItem('colors', i)} />
+                    </span>
+                  ))}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 mt-2 p-4 border-2 border-gray-100 rounded-xl">
-                <input 
-                  type="checkbox" 
-                  id="availability"
-                  checked={editingProduct.is_available ?? true}
-                  onChange={(e) => setEditingProduct({...editingProduct, is_available: e.target.checked})}
-                  className="w-5 h-5 cursor-pointer accent-black"
-                />
-                <label htmlFor="availability" className="font-bold text-sm uppercase cursor-pointer">
-                  In Stock / Available
-                </label>
+              {/* Image Upload */}
+              <div className="md:col-span-2 flex flex-col gap-2 border-t pt-6">
+                <label className="text-[10px] font-bold uppercase text-gray-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" /> Gallery</label>
+                <div className="relative border-2 border-dashed border-gray-100 rounded-xl p-4 hover:border-black transition-colors">
+                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <p className="text-center text-xs font-bold text-gray-400">Click to upload product images</p>
+                </div>
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {editingProduct.image_urls?.map((url, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden border group">
+                      <img src={url} className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => removeItem('image_urls', i)} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><Trash2 className="h-4 w-4" /></button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <button 
-                type="submit"
-                disabled={updateLoading}
-                className="bg-black text-white font-black uppercase py-4 rounded-xl mt-4 hover:tracking-[0.2em] transition-all duration-500 flex justify-center items-center gap-2"
-              >
-                {updateLoading ? <Loader2 className="animate-spin h-5 w-5" /> : <><Save className="h-5 w-5" /> Save Changes</>}
+              <button type="submit" disabled={updateLoading} className="md:col-span-2 bg-black text-white font-black uppercase py-4 rounded-2xl mt-4 flex justify-center items-center gap-3">
+                {updateLoading ? <Loader2 className="animate-spin h-5 w-5" /> : <><Save className="h-5 w-5" /> Update Drop</>}
               </button>
             </form>
           </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from './CartContext';
-import { useParams, useSearchParams } from 'react-router-dom'; 
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from "../../dataBase/supabaseClient";
 import { 
   ChevronDown, ChevronUp, SlidersHorizontal, X, Check, 
@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 
 const CategoryPage = () => {
+  const navigate = useNavigate();
+
   const [visibleProducts, setVisibleProducts] = useState(10); // عدد المنتجات اللي هتظهر حالياً
   const [hasMore, setHasMore] = useState(true); // هل لسه فيه منتجات تانية؟
   const [isFetchingMore, setIsFetchingMore] = useState(false); // عشان نظهر Loader صغير تحت
@@ -224,7 +226,7 @@ useEffect(() => {
     const discountPercentage = item.old_price ? Math.round(((item.old_price - item.price) / item.old_price) * 100) : 0;
 
     return (
-      <div className="group cursor-pointer relative flex flex-col h-full bg-white transition-all">
+      <div onClick={() => navigate(`/product/${item.id}`)}  className="group cursor-pointer relative flex flex-col h-full bg-white transition-all">
         <div 
           className="relative aspect-[3/4] bg-[#f6f6f6] overflow-hidden rounded-sm"
           onMouseEnter={() => images.length > 1 && setCurrentIndex(1)}
@@ -345,12 +347,19 @@ useEffect(() => {
 </div>
           <div className="w-full flex items-center justify-between mt-auto pt-3 border-t border-gray-50">
             <div className="flex gap-1">
-              {item.colors?.slice(0, 3).map(c => (
-                <div key={c} style={{ backgroundColor: colorMap[c] || c }} className="w-2.5 h-2.5 rounded-full border border-gray-100" />
+            <div className="flex flex-wrap gap-1">
+              {item.colors?.map(c => (
+                <div 
+                  key={c} 
+                  style={{ backgroundColor: colorMap[c] || c }} 
+                  className="w-2.5 h-2.5 rounded-full border-[0.5px] border-black/20" 
+                />
               ))}
             </div>
+            </div>
+            {/* 🔴 تم التعديل هنا لعرض جميع المقاسات المتاحة 🔴 */}
             <span className="text-[9px] text-gray-400 font-medium uppercase tracking-tighter">
-              {item.sizes?.slice(0, 2).join(' · ')}
+              {item.sizes?.join(' · ')}
             </span>
           </div>
         </div>

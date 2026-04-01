@@ -35,6 +35,7 @@ import EditProduct from './components/dataBase/adminControl/EditProduct';
 import UsersPage from './components/dataBase/adminControl/UsersPage';
 import AdminOrders from './components/dataBase/adminControl/AdminOrders';
 import AddAdmin from './components/dataBase/adminControl/AddAdmin';
+import ProductDetails from './components/pages/display/ProductDetails';
 
 function AppContent({ session }) {
   const location = useLocation();
@@ -62,6 +63,7 @@ function AppContent({ session }) {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/returns" element={<Returns />} />
         <Route path="/favorites" element={<WishlistPage />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
         <Route 
           path="/account" 
           element={session ? <ProfilePage user={session.user} /> : <AuthPage />} 
