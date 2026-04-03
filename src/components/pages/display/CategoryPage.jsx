@@ -228,7 +228,7 @@ useEffect(() => {
     return (
       <div onClick={() => navigate(`/product/${item.id}`)}  className="group cursor-pointer relative flex flex-col h-full bg-white transition-all">
         <div 
-          className="relative aspect-[3/4] bg-[#f6f6f6] overflow-hidden rounded-sm"
+          className="relative aspect-[3/4] overflow-hidden rounded-sm"
           onMouseEnter={() => images.length > 1 && setCurrentIndex(1)}
           onMouseLeave={() => setCurrentIndex(0)}
           onTouchStart={handleTouchStart}
@@ -237,7 +237,8 @@ useEffect(() => {
           <img 
             src={images[currentIndex]} 
             alt={item.name} 
-            className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105" 
+            /* التعديل هنا: غيرنا object-cover لـ object-contain */
+            className="w-full h-full object-contain transition-all duration-700 group-hover:scale-105 p-2" 
           />
 
           {/* 🟢 شريط الخصم (Sale Badge) */}

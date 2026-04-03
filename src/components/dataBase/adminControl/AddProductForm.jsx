@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient'; 
 import { Check, Plus, Upload, Loader2 } from 'lucide-react'; 
-import DeleteUser from './DeleteUser';
+import DeleteItem from './DeleteItem';
 
 const AddProductForm = () => {
   const [loading, setLoading] = useState(false);
@@ -302,7 +302,7 @@ const AddProductForm = () => {
               multiple 
               accept="image/*"
               className="absolute inset-0 opacity-0 cursor-pointer"
-              onChange={(e) => setImages(Array.from(e.target.files).slice(0, 5))}
+              onChange={(e) => setImages(Array.from(e.target.files))}
             />
             <Upload className="h-8 w-8 text-gray-300 mb-2 group-hover:text-black transition-colors" />
             <p className="text-sm text-gray-500 font-bold uppercase">Click to upload visuals</p>
@@ -329,7 +329,7 @@ const AddProductForm = () => {
 
       </form>
     </div>
-    <DeleteUser />  
+    <DeleteItem />  
   </>
   );
 };

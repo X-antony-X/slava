@@ -24,7 +24,7 @@ const CategorySection = () => {
         setDbBanners(banners || []);
 
         // 2. جلب صور الـ Spotlight من الـ Storage
-        const { data: files, error: storageError } = await supabase.storage.from('spotlight').list('spotlight-images', { limit: 10 });
+        const { data: files, error: storageError } = await supabase.storage.from('spotlight').list('spotlight-images', { limit: 100 });
         if (storageError) throw storageError;
 
         if (files) {
@@ -60,23 +60,37 @@ const CategorySection = () => {
     <section className="bg-white text-black font-sans">
       
       {/* --- الجزء العلوي: Banners (تم التعديل ليكون object-fill) --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden">
-        {dbBanners.map((slide) => (
-          <div key={slide.id} className="relative aspect-[4/5] md:aspect-auto md:h-[80vh] overflow-hidden group border-r border-gray-100 last:border-0">
-            <img 
-              src={slide.image_url} 
-              alt={slide.title} 
-              /* تم تغيير object-cover إلى object-fill لتمديد الصورة */
-              className="w-full h-full object-fill transition-opacity duration-500 group-hover:opacity-90" 
-            />
-            <div className="absolute inset-0 bg-black/20" />
-            <div className="absolute inset-x-0 bottom-0 p-8 md:p-16 z-10 flex flex-col justify-end text-white">
-              <h3 className="text-3xl md:text-5xl font-black uppercase mb-6 italic tracking-tighter">{slide.title}</h3>
-              <Link to="shop" className="self-start bg-white text-black font-bold px-8 py-3 rounded-full text-sm hover:bg-gray-200 transition uppercase tracking-widest">Shop</Link>
-            </div>
-          </div>
-        ))}
-      </div>
+{/* --- الجزء العلوي: Banners (تم التعديل ليكون الكلام تحت الصورة وبدون تداخل) --- */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden bg-white"> {/* تأكدنا أن الخلفية بيضاء للنص */}
+              {dbBanners.map((slide) => (
+               <div key={slide.id} className="group border-r border-gray-100 last:border-0 flex flex-col"> {/* أضفنا flex-col للترتيب الطولي */}
+               
+                  {/* حاوية الصورة (حفظنا علي أبعادها) */}
+                  <div className="relative aspect-[4/5] md:aspect-auto md:h-[70vh] overflow-hidden"> {/* قللنا الارتفاع قليلاً md:h-[70vh] لترك مساحة للنص تحت */}
+                    <img 
+                      src={slide.image_url} 
+                      alt={slide.title} 
+                      /* تم تغيير object-cover إلى object-fill لتمديد الصورة (كما طلبت سابقاً) */
+                      className="w-full h-full object-fill transition-opacity duration-500 group-hover:opacity-90" 
+                    />
+                  {/* تم حذف الـ overlay الأسود */}
+                 </div>
+              
+                  {/* حاوية المحتوى (الآن أسفل الصورة) */}
+                  <div className="p-8 md:p-12 z-10 flex flex-col items-center text-center text-black"> {/* تم تغيير اللون للأسود ليتناسب مع الخلفية البيضاء */}
+                    <h3 className="text-3xl md:text-4xl font-black uppercase mb-6 italic tracking-tighter leading-snug">{slide.title}</h3>
+               
+                   {/* تم تغيير لون الزر ليكون أسود ونص أبيض ليتناسب مع الخلفية البيضاء */}
+                   <Link 
+                      to="shop" 
+                      className="self-center bg-black text-white font-bold px-10 py-4 rounded-full text-xs md:text-sm hover:bg-gray-800 transition uppercase tracking-widest shadow-md"
+                    >
+                      Shop
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
 
       {/* --- الجزء السفلي: Spotlight --- */}
       <div className="max-w-[1400px] mx-auto px-6 py-16">

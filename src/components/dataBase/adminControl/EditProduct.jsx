@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { Search, Edit, Trash2, X, Save, Loader2, Plus, Image as ImageIcon } from 'lucide-react';
 
-// الثوابت يفضل تكون بره الـ Component
 const AVAILABLE_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL'];
 const PREDEFINED_COLORS = [
   { name: 'Black', hex: '#000000' },
@@ -20,36 +19,53 @@ const EditProduct = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // State للفلاتر في صفحة العرض
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [categories, setCategories] = useState(['All']);
   
+  // State جديدة عشان نخزن فيها الفئات اللي جاية من جدول navbar_categories عشان قائمة التعديل
+  const [dbCategories, setDbCategories] = useState([]); 
+
   const [editingProduct, setEditingProduct] = useState(null);
   const [updateLoading, setUpdateLoading] = useState(false);
-  
-  // مدخلات مؤقتة
-  const [newSize, setNewSize] = useState('');
 
-  const fetchProducts = async () => {
+  const fetchProductsAndCategories = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. جلب المنتجات
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setProducts(data || []);
-      const uniqueCategories = ['All', ...new Set(data.map(p => p.category))];
+      if (productsError) throw productsError;
+      setProducts(productsData || []);
+      
+      // للفلاتر العادية اللي فوق
+      const uniqueCategories = ['All', ...new Set(productsData.map(p => p.category))];
       setCategories(uniqueCategories);
+
+      // 2. جلب الفئات من جدول navbar_categories
+      const { data: categoriesData, error: categoriesError } = await supabase
+        .from('navbar_categories')
+        .select('name');
+        
+      if (categoriesError) throw categoriesError;
+      // بنحولها لحروف صغيرة (toLowerCase) عشان تبقى متطابقة مع طريقة كتابتك في جدول الـ products
+      if (categoriesData) {
+        setDbCategories(categoriesData.map(cat => cat.name.toLowerCase()));
+      }
+
     } catch (error) {
-      console.error('Error fetching products:', error.message);
+      console.error('Error fetching data:', error.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProductsAndCategories();
   }, []);
 
   const addItem = (field, value) => {
@@ -101,28 +117,25 @@ const EditProduct = () => {
     }
   };
 
-const handleUpdate = async (e) => {
-  e.preventDefault();
-  setUpdateLoading(true);
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    setUpdateLoading(true);
 
-  try {
-    const { error } = await supabase
-      .from('products')
-      .update({
-        name: editingProduct.name,
-        category: editingProduct.category,
-        price: parseFloat(editingProduct.price),
-        quantity: parseInt(editingProduct.quantity), // <--- أضف السطر ده هنا
-        old_price: editingProduct.old_price ? parseFloat(editingProduct.old_price) : null,
-        is_available: editingProduct.is_available,
-        sizes: editingProduct.sizes,
-        colors: editingProduct.colors,
-        image_urls: editingProduct.image_urls
-      })
-      .eq('id', editingProduct.id);
-
-    if (error) throw error;
-    // ... باقي الكود
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: editingProduct.name,
+          category: editingProduct.category, // الفئة هتتحدث هنا
+          price: parseFloat(editingProduct.price),
+          quantity: parseInt(editingProduct.quantity), // الكمية هتتحدث هنا
+          old_price: editingProduct.old_price ? parseFloat(editingProduct.old_price) : null,
+          is_available: editingProduct.is_available,
+          sizes: editingProduct.sizes,
+          colors: editingProduct.colors,
+          image_urls: editingProduct.image_urls
+        })
+        .eq('id', editingProduct.id);
 
       if (error) throw error;
 
@@ -197,38 +210,57 @@ const handleUpdate = async (e) => {
       {editingProduct && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-3xl w-full max-w-2xl p-6 md:p-10 relative shadow-2xl my-auto">
-            <button onClick={() => setEditingProduct(null)} className="absolute top-6 right-6 text-gray-400 hover:text-black"><X className="h-6 w-6" /></button>
+            <button type="button" onClick={() => setEditingProduct(null)} className="absolute top-6 right-6 text-gray-400 hover:text-black"><X className="h-6 w-6" /></button>
             <h3 className="text-2xl font-black italic uppercase mb-8">Update Product Details</h3>
             
             <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Product Name */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-bold uppercase text-gray-400">Product Name</label>
                 <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" required />
               </div>
 
-{/* تعديل قسم الأسعار والكمية */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2"> 
-  <div className="flex flex-col gap-1">
-    <label className="text-[10px] font-bold uppercase text-gray-400">Price</label>
-    <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" required />
-  </div>
-  
-  <div className="flex flex-col gap-1">
-    <label className="text-[10px] font-bold uppercase text-gray-400">Old Price</label>
-    <input type="number" value={editingProduct.old_price || ''} onChange={(e) => setEditingProduct({...editingProduct, old_price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" />
-  </div>
+              {/* Category (من جدول navbar_categories) */}
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase text-gray-400">Category</label>
+                <select 
+                  value={editingProduct.category || ''} 
+                  onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})} 
+                  className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold uppercase" 
+                  required
+                >
+                  <option value="" disabled>Select Category</option>
+                  {/* بنعمل Map على الفئات اللي جبناها من الداتا بيز */}
+                  {dbCategories.map((cat, index) => (
+                    <option key={index} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
 
-  <div className="flex flex-col gap-1">
-    <label className="text-[10px] font-bold uppercase text-gray-400">Quantity (Stock)</label>
-    <input 
-      type="number" 
-      value={editingProduct.quantity || 0} 
-      onChange={(e) => setEditingProduct({...editingProduct, quantity: e.target.value})} 
-      className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" 
-      required 
-    />
-  </div>
-</div>
+              {/* تعديل قسم الأسعار والكمية */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:col-span-2"> 
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Price</label>
+                  <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" required />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Old Price</label>
+                  <input type="number" value={editingProduct.old_price || ''} onChange={(e) => setEditingProduct({...editingProduct, old_price: e.target.value})} className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Quantity (Stock)</label>
+                  <input 
+                    type="number" 
+                    value={editingProduct.quantity || 0} 
+                    onChange={(e) => setEditingProduct({...editingProduct, quantity: e.target.value})} 
+                    className="border-2 border-gray-100 p-3 rounded-xl outline-none focus:border-black font-bold" 
+                    required 
+                  />
+                </div>
+              </div>
 
               {/* Sizes Select */}
               <div className="flex flex-col gap-2">
@@ -255,58 +287,56 @@ const handleUpdate = async (e) => {
               {/* Colors Picker */}
               <div className="flex flex-col gap-2">
                 <label className="text-[10px] font-bold uppercase text-gray-400">Colors</label>
-<div className="flex flex-wrap items-center gap-3">
-  {/* الألوان المحددة مسبقاً */}
-  {PREDEFINED_COLORS.map((c) => (
-    <button
-      key={c.name}
-      type="button"
-      onClick={() => { if(!editingProduct.colors?.includes(c.name)) addItem('colors', c.name); }}
-      className={`h-6 w-6 rounded-full border-2 transition-all ${editingProduct.colors?.includes(c.name) ? 'border-black scale-110 shadow-sm' : 'border-gray-200 hover:scale-105'}`}
-      style={{ backgroundColor: c.hex }}
-      title={c.name}
-    />
-  ))}
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* الألوان المحددة مسبقاً */}
+                  {PREDEFINED_COLORS.map((c) => (
+                    <button
+                      key={c.name}
+                      type="button"
+                      onClick={() => { if(!editingProduct.colors?.includes(c.name)) addItem('colors', c.name); }}
+                      className={`h-6 w-6 rounded-full border-2 transition-all ${editingProduct.colors?.includes(c.name) ? 'border-black scale-110 shadow-sm' : 'border-gray-200 hover:scale-105'}`}
+                      style={{ backgroundColor: c.hex }}
+                      title={c.name}
+                    />
+                  ))}
 
-  {/* زرار إضافة لون مخصص (Custom Color) */}
-  <div className="flex flex-col items-center gap-1 group relative">
-    <div 
-      className="h-7 w-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center cursor-pointer hover:border-black transition-colors"
-      onClick={() => document.getElementById('customColorInput').click()}
-      style={{ backgroundColor: customColor }}
-    >
-      <span className={`text-lg font-light ${customColor === '#ffffff' ? 'text-black' : 'text-white'}`}>+</span>
-    </div>
-    
-    {/* Input مخفي */}
-    <input 
-      id="customColorInput"
-      type="color" 
-      value={customColor}
-      onChange={(e) => {
-        setCustomColor(e.target.value);
-        setShowConfirm(true); // نظهر كلمة confirm لما يختار لون
-      }}
-      className="absolute invisible"
-    />
+                  {/* زرار إضافة لون مخصص */}
+                  <div className="flex flex-col items-center gap-1 group relative">
+                    <div 
+                      className="h-7 w-7 rounded-full border-2 border-dashed border-gray-400 flex items-center justify-center cursor-pointer hover:border-black transition-colors"
+                      onClick={() => document.getElementById('customColorInput').click()}
+                      style={{ backgroundColor: customColor }}
+                    >
+                      <span className={`text-lg font-light ${customColor === '#ffffff' ? 'text-black' : 'text-white'}`}>+</span>
+                    </div>
+                    
+                    <input 
+                      id="customColorInput"
+                      type="color" 
+                      value={customColor}
+                      onChange={(e) => {
+                        setCustomColor(e.target.value);
+                        setShowConfirm(true);
+                      }}
+                      className="absolute invisible"
+                    />
 
-    {/* زرار التأكيد اللي هيظهر بعد اختيار اللون */}
-    {showConfirm && (
-      <button
-        type="button"
-        onClick={() => {
-          if(!editingProduct.colors?.includes(customColor)) {
-            addItem('colors', customColor);
-            setShowConfirm(false); // نخفيه تاني بعد الإضافة
-          }
-        }}
-        className="text-[10px] font-black uppercase tracking-tighter border-b border-black leading-none mt-1 animate-pulse"
-      >
-        Confirm
-      </button>
-    )}
-  </div>
-</div>
+                    {showConfirm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if(!editingProduct.colors?.includes(customColor)) {
+                            addItem('colors', customColor);
+                            setShowConfirm(false);
+                          }
+                        }}
+                        className="text-[10px] font-black uppercase tracking-tighter border-b border-black leading-none mt-1 animate-pulse"
+                      >
+                        Confirm
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {editingProduct.colors?.map((c, i) => (
                     <span key={i} className="border-2 border-gray-100 px-2 py-1 rounded-md text-[10px] font-bold flex items-center gap-1">
