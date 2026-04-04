@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from "../dataBase/supabaseClient"
 
 const PreFooter = () => {
   const [openSection, setOpenSection] = useState(null);
@@ -9,25 +11,28 @@ const PreFooter = () => {
     setOpenSection(openSection === section ? null : section);
   };
 
+  const { data: categories, isLoading } = useQuery({
+    queryKey: ['navbar_categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('navbar_categories')
+        .select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const topsLinks = categories?.filter(cat => cat.type === 'tops') || [];
+  const bottomsLinks = categories?.filter(cat => cat.type === 'bottoms') || [];
+
   const footerData = [
     {
       title: "Tops",
-      links: [
-        { name: "All Tops", path: "/shop/tops" },
-        { name: "Hoodies", path: "/shop/hoodie" },
-        { name: "Jackets", path: "/shop/jacket" },
-        { name: "T-Shirts", path: "/shop/t-shirt" },
-        { name: "Pullovers", path: "/shop/pullover" }
-      ]
+      links: topsLinks.map(cat => ({ name: cat.name, path: cat.path }))
     },
     {
       title: "Bottoms",
-      links: [
-        { name: "All Bottoms", path: "/shop/bottoms" },
-        { name: "Pants", path: "/shop/pants" },
-        { name: "Shorts", path: "/shop/shorts" },
-        { name: "Sweatpants", path: "/shop/sweatpants" }
-      ]
+      links: bottomsLinks.map(cat => ({ name: cat.name, path: cat.path }))
     },
     {
       title: "Support",
@@ -41,9 +46,6 @@ const PreFooter = () => {
       title: "Company",
       links: [
         { name: "About Slava", path: "/slava" },
-        // { name: "News", path: "#" },
-        // { name: "Careers", path: "#" },
-        // { name: "Sustainability", path: "#" }
       ]
     }
   ];
@@ -52,7 +54,6 @@ const PreFooter = () => {
     <footer className="bg-white text-black py-16 px-6 md:px-12 font-sans border-t border-gray-100">
       <div className="max-w-[1200px] mx-auto">
         
-        {/* --- 1. اللوجو واللينكات العلوية --- */}
         <div className="flex flex-col items-center text-center gap-8 mb-16">
           <div className="flex items-center justify-center">
             <img 
@@ -70,7 +71,6 @@ const PreFooter = () => {
           </div>
         </div>
 
-        {/* --- 2. القوائم السفلية (Responsive Grid) --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-0 md:gap-8 border-t md:border-none border-gray-100">
           {footerData.map((section, idx) => (
             <div key={idx} className="border-b md:border-none border-gray-100 flex flex-col items-center md:items-start">
@@ -88,17 +88,22 @@ const PreFooter = () => {
               </button>
 
               <ul className={`
-                overflow-hidden transition-all duration-300 md:max-h-none w-full text-center md:text-center sm:text-left xs:text-left
+                overflow-hidden transition-all duration-300 md:max-h-none w-full text-center md:text-left
                 ${openSection === section.title ? 'max-h-96 pb-8' : 'max-h-0 md:max-h-fit'}
               `}>
-                {section.links.map((link, i) => (
-                  <li key={i} className="mb-4 last:mb-0">
-                    <a href={link.path} className="text-gray-500 hover:text-black text-[14px] font-medium transition-colors">
-                      {/* التعديل هنا: استخدام link.name بدل link */}
-                      {link.name}
-                    </a>
-                  </li>
-                ))}
+                {isLoading ? (
+                  <div className="flex justify-center md:justify-start py-2">
+                    <Loader2 size={16} className="animate-spin text-zinc-300" />
+                  </div>
+                ) : (
+                  section.links.map((link, i) => (
+                    <li key={i} className="mb-4 last:mb-0">
+                      <Link to={link.path} className="text-gray-500 hover:text-black text-[14px] font-medium transition-colors uppercase tracking-tight">
+                        {link.name}
+                      </Link>
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
           ))}
