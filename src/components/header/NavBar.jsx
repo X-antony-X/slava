@@ -12,6 +12,29 @@ const Navbar = () => {
   const [mobileSubMenu, setMobileSubMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // --- Logic الـ Scroll للتحكم في ظهور الهيدر ---
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  const controlNavbar = () => {
+    if (typeof window !== 'undefined') {
+      // لو نزلنا أكتر من 100 بكسل وبنعمل scroll لتحت، نخفي النيفبار
+      if (window.scrollY > lastScrollY && window.scrollY > 100) {
+        setIsVisible(false);
+      } else {
+        // لو بنعمل scroll لفوق، نظهر النيفبار
+        setIsVisible(true);
+      }
+      setLastScrollY(window.scrollY);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('scroll', controlNavbar);
+    return () => window.removeEventListener('scroll', controlNavbar);
+  }, [lastScrollY]);
+  // ------------------------------------------
+
   const { data: suggestedProducts = [] } = useQuery({
     queryKey: ['suggestedProducts'],
     queryFn: async () => {
@@ -192,8 +215,8 @@ const Navbar = () => {
         <div className="fixed inset-0 bg-black/40 z-[40]" onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); setActiveMenu(null); }} />
       )}
 
-      {/* Main Header */}
-      <header className="relative z-[50] bg-white border-b border-gray-100 font-sans">
+      {/* Main Header - تم إضافة الـ transition والـ visibility هنا */}
+      <header className={`fixed top-0 left-0 w-full z-[50] bg-white border-b border-gray-100 font-sans transition-transform duration-500 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-10 h-[70px]">
           
           <Link to="/">
@@ -240,7 +263,7 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* --- Mega Menu Desktop (Dynamic Categories & Images) --- */}
+        {/* --- Mega Menu Desktop --- */}
         <div 
           onMouseEnter={() => handleMouseEnter(activeMenu)} 
           onMouseLeave={handleMouseLeave} 
@@ -249,17 +272,12 @@ const Navbar = () => {
           <div className="max-w-[1440px] mx-auto px-10 py-12 grid grid-cols-4 gap-12">
             <div className="flex flex-col gap-4">
               <h4 className="font-black text-sm uppercase tracking-[0.2em] text-black border-b pb-3 mb-2">{activeMenu === 'tops' ? 'Tops' : 'Bottoms'}</h4>
-              {/* عرض الأقسام من الداتا بيز */}
               {activeMenu && dynamicMenuItems[activeMenu].map((item) => (
                 <Link key={item.id} to={item.path} onClick={() => setActiveMenu(null)} className="text-gray-500 hover:text-black hover:translate-x-1 transition-all font-bold uppercase text-xs tracking-widest">{item.name}</Link>
               ))}
-              {activeMenu && dynamicMenuItems[activeMenu].length === 0 && (
-                 <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">No categories yet</span>
-              )}
             </div>
             
             <div className="col-span-3 grid grid-cols-2 gap-6 h-[280px]">
-               {/* Slot 1 Image */}
                <div className="bg-gray-100 rounded-3xl p-8 flex flex-col justify-end group cursor-pointer overflow-hidden relative border border-transparent hover:border-black transition-all">
                   {activeSlot1?.image_url && (
                     <>
@@ -267,10 +285,8 @@ const Navbar = () => {
                       <div className="absolute inset-0 bg-black/20 z-0"></div>
                     </>
                   )}
-                  {!activeSlot1?.image_url && <div className="absolute right-0 bottom-0 w-40 h-40 bg-gray-200 rounded-tl-full group-hover:scale-110 transition-transform duration-700" />}
                </div>
 
-               {/* Slot 2 Image */}
                <div className="bg-black text-white rounded-3xl p-8 flex flex-col justify-end group cursor-pointer overflow-hidden relative">
                   {activeSlot2?.image_url && (
                     <>
@@ -279,7 +295,6 @@ const Navbar = () => {
                     </>
                   )}
                   <Link to={activeSlot2?.link_path || "/shop/new-arrivals"} onClick={() => setActiveMenu(null)} className="bg-white text-black px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest w-fit mt-6 relative z-10 hover:scale-105 transition-transform">Shop Now</Link>
-                  {!activeSlot2?.image_url && <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-3xl group-hover:bg-white/20 transition-all" />}
                </div>
             </div>
           </div>
@@ -289,14 +304,12 @@ const Navbar = () => {
       {/* --- MOBILE SIDEBAR --- */}
       <div className={`fixed inset-y-0 right-0 w-full xs:w-[85%] max-w-[380px] bg-white z-[300] transform transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] lg:hidden shadow-[-20px_0_80px_rgba(0,0,0,0.15)] ${isMenuOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex flex-col h-full bg-white">
-          
           <div className="flex justify-between items-center p-4 sm:p-6 border-b border-gray-50">
              <img src="/thumbnail.svg" alt="Logo" className="h-6 sm:h-8 w-auto grayscale" />
              <button onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); }} className="p-1.5 hover:bg-gray-100 rounded-full transition-all">
                <X className="h-6 w-6 text-black" />
              </button>
           </div>
-
           <div className="relative flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
             <div className={`absolute inset-0 px-6 py-8 sm:px-8 sm:py-10 transition-all duration-500 flex flex-col gap-8 ${mobileSubMenu ? '-translate-x-full opacity-0' : 'translate-x-0 opacity-100'}`}>
               
@@ -363,7 +376,7 @@ const Navbar = () => {
             <p className="text-[8px] text-gray-300 font-bold uppercase tracking-[0.2em] text-center mt-6">
               Designed by Antony • Ismailia
             </p>
-          </div>
+          </div>        
         </div>
       </div>
     </>
