@@ -12,29 +12,6 @@ const Navbar = () => {
   const [mobileSubMenu, setMobileSubMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // --- Logic الـ Scroll للتحكم في ظهور الهيدر ---
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  const controlNavbar = () => {
-    if (typeof window !== 'undefined') {
-      // لو نزلنا أكتر من 100 بكسل وبنعمل scroll لتحت، نخفي النيفبار
-      if (window.scrollY > lastScrollY && window.scrollY > 100) {
-        setIsVisible(false);
-      } else {
-        // لو بنعمل scroll لفوق، نظهر النيفبار
-        setIsVisible(true);
-      }
-      setLastScrollY(window.scrollY);
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener('scroll', controlNavbar);
-    return () => window.removeEventListener('scroll', controlNavbar);
-  }, [lastScrollY]);
-  // ------------------------------------------
-
   const { data: suggestedProducts = [] } = useQuery({
     queryKey: ['suggestedProducts'],
     queryFn: async () => {
@@ -112,7 +89,6 @@ const Navbar = () => {
 
   return (
     <>
-    <div className="h-[40px] w-full"></div>
       {/* Search Overlay */}
       <div className={`fixed inset-0 bg-white z-50 transition-all duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
         <div className="max-w-[1440px] mx-auto px-4 md:px-10 py-4">
@@ -217,7 +193,7 @@ const Navbar = () => {
       )}
 
       {/* Main Header - تم إضافة الـ transition والـ visibility هنا */}
-      <header className={`fixed top-0 left-0 w-full z-[50] bg-white border-b border-gray-100 font-sans transition-transform duration-500 ease-in-out ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
+      <header className={`sticky top-0 left-0 w-full z-[50] bg-white border-b border-gray-100 font-sans`}>
         <div className="max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-10 h-[70px]">
           
           <Link to="/">
