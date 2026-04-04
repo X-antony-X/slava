@@ -90,7 +90,7 @@ const Navbar = () => {
   return (
     <>
       {/* Search Overlay */}
-      <div className={`fixed inset-0 bg-white z-50 transition-all duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
+      <div className={`fixed inset-0 bg-white z-[1001] transition-all duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
         <div className="max-w-[1440px] mx-auto px-4 md:px-10 py-4">
           <div className="flex items-center justify-between gap-10">
             <img src="/thumbnail.svg" alt="Logo" className="h-10 md:h-12 w-auto object-contain" />
@@ -192,8 +192,7 @@ const Navbar = () => {
         <div className="fixed inset-0 bg-black/40 z-[40]" onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); setActiveMenu(null); }} />
       )}
 
-      {/* Main Header - تم إضافة الـ transition والـ visibility هنا */}
-      <header className={`sticky top-0 left-0 w-full z-[50] bg-white border-b border-gray-100 font-sans`}>
+      <header className="relative w-full z-[50] bg-white border-b border-gray-100 font-sans">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-10 h-[70px]">
           
           <Link to="/">

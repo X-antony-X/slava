@@ -282,7 +282,7 @@ const CategoryPage = () => {
         </div>
 
         {images.length > 1 && (
-          <div className="flex justify-center gap-1 mt-2 md:hidden">
+          <div className="flex justify-center gap-1 mt-2 md:hidden"> 
             {images.map((_, idx) => (
               <div 
                 key={idx} 
@@ -429,10 +429,8 @@ const CategoryPage = () => {
 
   return (
     <div className="bg-white min-h-screen font-sans relative text-[#121212]">
-      <div className={`sticky transition-all duration-500 bg-white z-40 border-b border-gray-100 px-4 md:px-12 py-6 flex flex-wrap justify-between items-center gap-4 ${
-        isNavbarVisible ? 'top-[70px]' : 'top-0'
-      }`}>        
-        <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">
+    <div className={`sticky transition-all duration-500 bg-white z-40 border-b border-gray-100 px-4 md:px-12 py-6 flex flex-wrap justify-between items-center gap-4 top-0`}>        
+      <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">
           {(filterType === 'new' || categoryName === 'new-arrivals') ? 'New Arrivals' : categoryName?.replace('-', ' ')} 
           <span className="text-gray-300 font-normal"> / {products.length}</span>
         </h1>
@@ -478,7 +476,9 @@ const CategoryPage = () => {
 
       <div className="flex px-4 md:px-12 gap-10 mt-8 relative">
         {showDesktopFilters && (
-          <aside className="hidden md:block w-64 flex-shrink-0 sticky top-[100px] h-[calc(100vh-120px)] overflow-y-auto pr-4 custom-scrollbar">
+          <aside 
+            className={`hidden md:block w-64 flex-shrink-0 sticky transition-all duration-500 h-[calc(100vh-120px)] overflow-y-auto pr-4 custom-scrollbar top-[70px]`}
+          >
             <FilterContent />
           </aside>
         )}
