@@ -1,27 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingCart, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { ShoppingCart, ChevronLeft, ChevronRight, ArrowRight, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../dataBase/supabaseClient';
 
-// -----------------------------------------------------------------
-// 1. مكون بطاقة المنتج (Product Card)
-// -----------------------------------------------------------------
-// -----------------------------------------------------------------
-// 1. مكون بطاقة المنتج (Product Card) المتعدل
-// -----------------------------------------------------------------
 const ProductCard = ({ product }) => {
-  const navigate = useNavigate(); // بنضيف الـ hook هنا
+  const navigate = useNavigate();
   const mainImage = product.image_urls?.[0] || '/placeholder.jpg'; 
   const hasDiscount = product.old_price && product.old_price > product.price;
 
-  const handleCardClick = () => {
-    // التنقل للمسار الجديد باستخدام الـ ID بتاع المنتج من قاعدة البيانات
-    navigate(`/product/${product.id}`);
-  };
-
   return (
     <div 
-      onClick={handleCardClick} // ضفنا الـ click handler هنا
+      onClick={() => navigate(`/product/${product.id}`)}
       className="flex-none w-[180px] md:w-[300px] group flex flex-col bg-white border-r border-gray-200 relative overflow-hidden cursor-pointer hover:bg-gray-50 transition-colors snap-start"
     >
       {hasDiscount && (
@@ -35,9 +25,8 @@ const ProductCard = ({ product }) => {
           src={mainImage} 
           alt={product.name} 
           className="w-full h-full object-cover mix-blend-darken group-hover:scale-105 transition-transform duration-700 ease-out"
+          loading="lazy"
         />
-        <div className="hidden md:flex absolute bottom-0 left-0 w-full p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out gap-2 z-10">
-        </div>
       </div>
 
       <div className="p-3 md:p-4 flex flex-col flex-1 z-20">
@@ -59,9 +48,6 @@ const ProductCard = ({ product }) => {
   );
 };
 
-// -----------------------------------------------------------------
-// 2. مكون قسم الفئة مع المسارات الجديدة (Paths)
-// -----------------------------------------------------------------
 const CategorySection = ({ title, products, targetPath }) => {
   const scrollRef = useRef(null);
   const navigate = useNavigate();
@@ -74,17 +60,11 @@ const CategorySection = ({ title, products, targetPath }) => {
     }
   };
 
-  // التنقل للمسار المحدد (e.g., /shop/shirts)
-  const handleViewAll = () => {
-    navigate(targetPath);
-  };
-
   if (!products || products.length === 0) return null;
 
   return (
     <section className="py-10 md:py-16 bg-white border-b border-gray-100 last:border-0">
       <div className="container mx-auto px-4 md:px-10">
-        
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl md:text-4xl font-black uppercase italic tracking-tighter text-[#121212]">
@@ -95,7 +75,7 @@ const CategorySection = ({ title, products, targetPath }) => {
           
           <div className="flex items-center gap-4">
             <button 
-              onClick={handleViewAll}
+              onClick={() => navigate(targetPath)}
               className="group flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-[#121212] hover:opacity-70 transition-all border-b-2 border-[#121212] pb-1"
             >
               Discover All <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
@@ -120,7 +100,7 @@ const CategorySection = ({ title, products, targetPath }) => {
         </div>
       </div>
       
-      <style jsx>{`
+      <style jsx="true">{`
         .custom-scrollbar::-webkit-scrollbar { height: 3px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #121212; }
@@ -130,33 +110,28 @@ const CategorySection = ({ title, products, targetPath }) => {
   );
 };
 
-// -----------------------------------------------------------------
-// 3. الصفحة الرئيسية
-// -----------------------------------------------------------------
 const ShopCollection = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ['allAvailableProducts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_available', true)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 1000 * 60 * 10,
+  });
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('is_available', true)
-          .order('created_at', { ascending: false });
-        if (error) throw error;
-        setProducts(data || []);
-      } catch (error) {
-        console.error('Error:', error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-black italic uppercase tracking-widest text-sm bg-white">Loading...</div>;
+  if (isLoading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
+      <Loader2 className="animate-spin text-gray-200" size={40} />
+      <span className="font-black italic uppercase tracking-widest text-[10px]">Loading Collection</span>
+    </div>
+  );
 
   const filterByCat = (keyword) => {
     return products.filter(p => {
@@ -167,9 +142,7 @@ const ShopCollection = () => {
 
   return (
     <div className="bg-white min-h-screen font-sans text-[#121212]">
-
       <div className="pb-20">
-        {/* هنا بنمرر الـ paths اللي انت حددتها بالظبط */}
         <CategorySection 
             title="T-Shirts" 
             products={filterByCat('t-shirt')} 

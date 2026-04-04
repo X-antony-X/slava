@@ -5,7 +5,6 @@ import { Navigation, Scrollbar } from 'swiper/modules';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// Swiper styles
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/scrollbar';
@@ -19,11 +18,9 @@ const CategorySection = () => {
     const fetchAllData = async () => {
       try {
         setLoading(true);
-        // 1. جلب الـ Banners
         const { data: banners } = await supabase.from('secondary_banners').select('*').order('id', { ascending: true });
         setDbBanners(banners || []);
 
-        // 2. جلب صور الـ Spotlight من الـ Storage
         const { data: files, error: storageError } = await supabase.storage.from('spotlight').list('spotlight-images', { limit: 100 });
         if (storageError) throw storageError;
 
@@ -59,38 +56,31 @@ const CategorySection = () => {
   return (
     <section className="bg-white text-black font-sans">
       
-      {/* --- الجزء العلوي: Banners (تم التعديل ليكون object-fill) --- */}
-{/* --- الجزء العلوي: Banners (تم التعديل ليكون الكلام تحت الصورة وبدون تداخل) --- */}
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden bg-white"> {/* تأكدنا أن الخلفية بيضاء للنص */}
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-0 overflow-hidden bg-white">
               {dbBanners.map((slide) => (
-               <div key={slide.id} className="group border-r border-gray-100 last:border-0 flex flex-col"> {/* أضفنا flex-col للترتيب الطولي */}
+               <div key={slide.id} className="group border-r border-gray-100 last:border-0 flex flex-col">
                
-                  {/* حاوية الصورة (حفظنا علي أبعادها) */}
-                  <div className="relative aspect-[4/5] md:aspect-auto md:h-[70vh] overflow-hidden"> {/* قللنا الارتفاع قليلاً md:h-[70vh] لترك مساحة للنص تحت */}
+                  <div className="relative aspect-[4/5] md:aspect-auto md:h-[70vh] overflow-hidden">
                     <img 
                       src={slide.image_url} 
                       alt={slide.title} 
-                      /* تم تغيير object-cover إلى object-fill لتمديد الصورة (كما طلبت سابقاً) */
                       className="w-full h-full object-fill transition-opacity duration-500 group-hover:opacity-90" 
                     />
-                  {/* تم حذف الـ overlay الأسود */}
                  </div>
               
-                  {/* حاوية المحتوى (الآن أسفل الصورة) */}
-                  <div className="p-8 md:p-12 z-10 flex flex-col items-center text-center text-black"> {/* تم تغيير اللون للأسود ليتناسب مع الخلفية البيضاء */}
+                  <div className="p-8 md:p-12 z-10 flex flex-col items-center text-center text-black">
                     <h3 className="text-3xl md:text-4xl font-black uppercase mb-6 italic tracking-tighter leading-snug">{slide.title}</h3>
                
-                   {/* تم تغيير لون الزر ليكون أسود ونص أبيض ليتناسب مع الخلفية البيضاء */}
                    <Link 
-                      to="shop" 
+                      to="/shop/all" 
                       className="self-center bg-black text-white font-bold px-10 py-4 rounded-full text-xs md:text-sm hover:bg-gray-800 transition uppercase tracking-widest shadow-md"
                     >
                       Shop
                     </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
       {/* --- الجزء السفلي: Spotlight --- */}
       <div className="max-w-[1400px] mx-auto px-6 py-16">
@@ -131,19 +121,20 @@ const CategorySection = () => {
           {spotlightCards.map((card) => (
             <SwiperSlide key={card.id}>
               <div className="group flex flex-col h-full cursor-pointer">
-                {/* Image Box: تم التعديل ليكون object-fill */}
                 <div className="aspect-square w-full overflow-hidden bg-[#f6f6f6] mb-4">
                   <img 
                     src={card.image_url} 
                     alt="Workwear" 
-                    /* تم تغيير object-contain إلى object-fill لملء المربع بالكامل */
                     className="w-full h-full object-fill transition-opacity duration-300 group-hover:opacity-80"
                   />
                 </div>
                 {/* Text Content */}
-                <div className="space-y-1">
-                  <h3 className="text-[16px] font-medium leading-snug">{card.title}</h3>
-                </div>
+                   <Link 
+                      to="/shop/all" 
+                      className="self-center bg-black text-white font-bold px-10 py-4 rounded-full text-xs md:text-sm hover:bg-gray-800 transition uppercase tracking-widest shadow-md"
+                    >
+                      Shop
+                    </Link>
               </div>
             </SwiperSlide>
           ))}

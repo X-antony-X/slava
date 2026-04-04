@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../pages/display/CartContext';
 import { Search, Heart, ShoppingBag, Menu, X, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from "../dataBase/supabaseClient"
+import { supabase } from "../dataBase/supabaseClient";
 
 const Navbar = () => {
   const [activeMenu, setActiveMenu] = useState(null);
@@ -10,54 +11,60 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mobileSubMenu, setMobileSubMenu] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [suggestedProducts, setSuggestedProducts] = useState([]);
 
-  // --- 1. State جديدة للأقسام والصور الديناميكية ---
-  const [dynamicMenuItems, setDynamicMenuItems] = useState({ tops: [], bottoms: [] });
-  const [menuAssets, setMenuAssets] = useState([]);
+  const { data: suggestedProducts = [] } = useQuery({
+    queryKey: ['suggestedProducts'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('products').select('*').limit(4);
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5,
+  });
 
+  const { data: dynamicMenuItems = { tops: [], bottoms: [] } } = useQuery({
+    queryKey: ['navbarCategories'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('navbar_categories').select('*');
+      if (error) throw error;
+      return {
+        tops: data.filter(c => c.type === 'tops'),
+        bottoms: data.filter(c => c.type === 'bottoms')
+      };
+    },
+  });
+
+  const { data: menuAssets = [] } = useQuery({
+    queryKey: ['menuAssets'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('menu_assets').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .limit(4);
-        if (data) setSuggestedProducts(data);
-      } catch (err) {
-        console.error("Error fetching suggestions:", err);
-      }
-    };
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
-    // --- 2. دالة لجلب الأقسام والصور من Supabase ---
-    const fetchNavData = async () => {
-      try {
-        // جلب الأقسام
-        const { data: cats } = await supabase.from('navbar_categories').select('*');
-        if (cats) {
-          setDynamicMenuItems({
-            tops: cats.filter(c => c.type === 'tops'),
-            bottoms: cats.filter(c => c.type === 'bottoms')
-          });
-        }
-        // جلب الصور
-        const { data: assets } = await supabase.from('menu_assets').select('*');
-        if (assets) {
-          setMenuAssets(assets);
-        }
-      } catch (err) {
-        console.error("Error fetching nav data:", err);
-      }
-    };
-
-    fetchSuggestions();
-    fetchNavData();
-  }, []);
+  const { data: searchResults = [], isFetching: isSearching } = useQuery({
+    queryKey: ['searchProducts', debouncedSearch],
+    queryFn: async () => {
+      if (!debouncedSearch.trim()) return [];
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .ilike('name', `%${debouncedSearch}%`)
+        .limit(5);
+      if (error) throw error;
+      return data;
+    },
+    enabled: debouncedSearch.length > 0,
+  });
 
   const navigate = useNavigate();
-  
   const { cartItems, wishlistItems } = useCart();
   const timeoutRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -73,37 +80,10 @@ const Navbar = () => {
     setActiveMenu(menu);
   };
 
-  useEffect(() => {
-      const fetchResults = async () => {
-        if (searchTerm.trim().length > 0) {
-          setIsLoading(true);
-          try {
-            const { data, error } = await supabase
-              .from('products')
-              .select('*')
-              .ilike('name', `%${searchTerm}%`)
-              .limit(5);
-
-            if (data) setSearchResults(data);
-          } catch (error) {
-            console.error("Search error:", error);
-          } finally {
-            setIsLoading(false);
-          }
-        } else {
-          setSearchResults([]);
-        }
-      };
-
-    const delayDebounceFn = setTimeout(fetchResults, 100);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
-
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => setActiveMenu(null), 100);
   };
 
-  // --- 3. استخراج الصور الخاصة بالقسم المفتوح حالياً ---
   const activeSlot1 = menuAssets.find(a => a.menu_type === activeMenu && a.slot_index === 1);
   const activeSlot2 = menuAssets.find(a => a.menu_type === activeMenu && a.slot_index === 2);
 
@@ -117,7 +97,7 @@ const Navbar = () => {
             
             <div className="flex-1 max-w-[800px] relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                {isSearching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
               </div>
               <input 
                 type="text" 
@@ -136,13 +116,13 @@ const Navbar = () => {
 
           {/* Search Results */}
           <div className="mt-8 max-w-[800px] mx-auto overflow-y-auto max-h-[60vh] pr-2 custom-scrollbar">
-            {isLoading && searchTerm.length > 0 && (
+            {isSearching && searchTerm.length > 0 && (
               <div className="flex justify-center py-10">
                 <Loader2 className="h-8 w-8 animate-spin text-black" />
               </div>
             )}
 
-            {!isLoading && searchResults.length > 0 ? (
+            {!isSearching && searchResults.length > 0 ? (
               <div className="grid grid-cols-1 gap-2">
                 {searchResults.map((product) => (
                   <Link 
@@ -172,7 +152,7 @@ const Navbar = () => {
                   </Link>
                 ))}
               </div>
-            ) : searchTerm.length > 0 && !isLoading ? (
+            ) : searchTerm.length > 0 && !isSearching ? (
               <div className="text-center py-20">
                 <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-sm">No results found for "{searchTerm}"</p>
               </div>
@@ -206,7 +186,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-
+      
       {/* Background Overlay */}
       {(activeMenu || isMenuOpen) && !isSearchOpen && (
         <div className="fixed inset-0 bg-black/40 z-[40]" onClick={() => { setIsMenuOpen(false); setMobileSubMenu(null); setActiveMenu(null); }} />
@@ -337,7 +317,6 @@ const Navbar = () => {
 
               <div className="w-full h-[1px] bg-gray-50" />
 
-              {/* أرقام الأقسام بقت بتقرأ من الداتا بيز */}
               <div className="space-y-6 sm:space-y-8">
                 <button onClick={() => setMobileSubMenu('tops')} className="w-full text-xl sm:text-2xl font-black uppercase tracking-tighter flex justify-between items-center group">
                   <span className="flex items-center gap-3">Tops <span className="text-[9px] text-gray-300 font-bold tracking-widest">({dynamicMenuItems.tops.length})</span></span>
@@ -351,7 +330,6 @@ const Navbar = () => {
               </div>
             </div>
 
-            {/* Mobile Sub Menu (Dynamic Mapping) */}
             <div className={`absolute inset-0 px-6 py-8 sm:px-8 sm:py-10 transition-all duration-500 bg-white flex flex-col ${mobileSubMenu ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}`}>
               <button onClick={() => setMobileSubMenu(null)} className="flex items-center gap-2 text-gray-400 font-black uppercase text-[9px] tracking-[0.2em] mb-8">
                 <ChevronLeft className="h-4 w-4" /> Back

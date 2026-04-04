@@ -1,59 +1,50 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Play, Pause, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { supabase } from '../../dataBase/supabaseClient'; // تأكد من مسار الملف عندك
+import { supabase } from '../../dataBase/supabaseClient'; 
 import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
-  const [slides, setSlides] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
   
-  // 1. ضفنا Ref لفيديو الخلفية عشان نتحكم فيه هو كمان
   const mainVideoRef = useRef(null);
   const bgVideoRef = useRef(null);
 
   const IMAGE_DURATION = 5000;
 
-  useEffect(() => {
-    const fetchHeroData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('hero_slides')
-          .select('*')
-          .order('created_at', { ascending: true });
+  const { data: slides = [], isLoading, error } = useQuery({
+    queryKey: ['heroSlides'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('hero_slides')
+        .select('*') 
+        .order('created_at', { ascending: true });
 
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setSlides(data);
-        }
-      } catch (error) {
-        console.error("Error loading hero slides:", error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHeroData();
-  }, []);
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 60, 
+  });
 
   const handleNext = () => {
+    if (slides.length === 0) return;
     setProgress(0);
     setCurrentIndex((prev) => (prev + 1) % slides.length);
   };
 
   const handlePrev = () => {
+    if (slides.length === 0) return;
     setProgress(0);
     setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const currentSlide = slides[currentIndex];
 
-  // إدارة الـ Progress للصور
   useEffect(() => {
     if (!isPlaying || !currentSlide || currentSlide.type !== 'image') return;
-    const start = Date.now();
+    const start = Date.now() - (progress / 100 * IMAGE_DURATION);
     const interval = setInterval(() => {
       const elapsed = Date.now() - start;
       const percent = (elapsed / IMAGE_DURATION) * 100;
@@ -64,9 +55,8 @@ const HeroSection = () => {
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [currentIndex, isPlaying, currentSlide]);
+  }, [currentIndex, isPlaying, currentSlide, slides.length]);
 
-  // إدارة الـ Progress وتشغيل الفيديو
   useEffect(() => {
     if (!currentSlide || currentSlide.type !== 'video') return;
     
@@ -83,7 +73,6 @@ const HeroSection = () => {
     
     const handleEnded = () => handleNext();
 
-    // 2. دالة عشان تـ Handle تشغيل الفيديو بشكل آمن مع المتصفحات
     const playVideos = async () => {
       try {
         if (isPlaying) {
@@ -94,7 +83,7 @@ const HeroSection = () => {
           mainVid.pause();
         }
       } catch (err) {
-        console.warn("Autoplay was blocked or video isn't ready:", err);
+        console.warn("Autoplay interaction blocked:", err);
       }
     };
 
@@ -109,23 +98,22 @@ const HeroSection = () => {
     };
   }, [currentIndex, isPlaying, currentSlide]);
 
-  if (loading) return (
+  if (isLoading) return (
     <div className="h-screen w-full bg-black flex items-center justify-center">
       <Loader2 className="text-white animate-spin" size={40} />
     </div>
   );
 
-  if (slides.length === 0) return null;
+  if (error || slides.length === 0) return null;
 
   return (
     <section className="relative h-screen w-full overflow-hidden bg-black text-white font-medium uppercase">
-
       {/* Background Layer */}
-      <div className="absolute inset-0 z-0 bg-black"> {/* ضفنا لون أسود هنا عشان النقلة تكون سلسة */}
+      <div className="absolute inset-0 z-0 bg-black">
         {currentSlide.type === 'video' ? (
           <div className="relative h-full w-full flex items-center justify-center">
             <video
-              ref={bgVideoRef} // ربطنا الفيديو ده بالـ Ref
+              ref={bgVideoRef}
               key={`bg-${currentSlide.url}`}
               muted playsInline loop autoPlay
               className="absolute inset-0 w-full h-full object-cover opacity-20 blur-[100px] transition-opacity duration-300"
@@ -134,7 +122,7 @@ const HeroSection = () => {
             </video>
 
             <video
-              ref={mainVideoRef} // عدلنا الاسم هنا لـ mainVideoRef
+              ref={mainVideoRef}
               key={`main-${currentSlide.url}`}
               muted playsInline autoPlay
               className="absolute inset-0 z-10 w-full h-full object-cover transition-opacity duration-300"
@@ -159,7 +147,6 @@ const HeroSection = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-20" />
       </div>
 
-      {/* Text Content */}
       <div className="relative z-30 flex flex-col items-center justify-end h-full text-center px-4 pb-32 md:pb-28 pointer-events-none">
         <div className="space-y-2">
           <p className="text-[9px] md:text-[10px] tracking-[0.4em] text-zinc-400">{currentSlide.desc}</p>
@@ -172,7 +159,7 @@ const HeroSection = () => {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Circle Progress Button */}
       <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-50 flex items-center gap-2 md:gap-3">
         <button 
           onClick={() => setIsPlaying(!isPlaying)}
@@ -213,7 +200,6 @@ const HeroSection = () => {
           />
         ))}
       </div>
-
     </section>
   );
 };

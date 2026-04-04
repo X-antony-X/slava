@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query'; 
 import { supabase } from "../../dataBase/supabaseClient";
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Scrollbar } from 'swiper/modules';
@@ -11,35 +12,27 @@ import 'swiper/css/navigation';
 import 'swiper/css/scrollbar';
 
 const OffersSection = () => {
-  const [offers, setOffers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: offers = [], isLoading } = useQuery({
+    queryKey: ['productOffers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, price, old_price, image_urls, category')
+        .not('old_price', 'is', null) 
+        .order('created_at', { ascending: false });
 
-  useEffect(() => {
-    fetchOffers();
-  }, []);
+      if (error) throw error;
+      return data;
+    },
+    staleTime: 1000 * 60 * 5, 
+  });
 
-  const fetchOffers = async () => {
-    setLoading(true);
-    // هنجيب المنتجات اللي الـ old_price بتاعها مش فاضي (يعني عليها عرض)
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .not('old_price', 'is', null) 
-      .order('created_at', { ascending: false });
-
-    if (!error) {
-      setOffers(data);
-    }
-    setLoading(false);
-  };
-
-  if (loading) return (
+  if (isLoading) return (
     <div className="h-64 flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-gray-300" size={40} />
+      <Loader2 className="animate-spin text-gray-200" size={40} />
     </div>
   );
 
-  // لو مفيش عروض حالياً، القسم كله مش هيظهر عشان ميبقاش شكله وحش
   if (offers.length === 0) return null;
 
   return (
@@ -48,21 +41,21 @@ const OffersSection = () => {
         
         {/* Header Section */}
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-[1.3rem] font-medium tracking-normal uppercase font-black italic">
-            slava Offers
+          <h2 className="text-[1.3rem] font-black italic uppercase tracking-tight">
+             Slava Offers
           </h2>
           
           <div className="flex items-center gap-4">
-            <Link to="/shop/all" className="text-[14px] font-medium text-black cursor-pointer hover:text-gray-400 transition-colors underline underline-offset-4 uppercase">
+            <Link to="/shop/all" className="text-[14px] font-bold text-black hover:text-gray-400 transition-colors underline underline-offset-4 uppercase">
               View All
             </Link>
             
             <div className="hidden md:flex items-center gap-2">
-              <button className="nike-prev bg-[#f5f5f5] hover:bg-[#e5e5e5] p-3 rounded-full transition-colors">
-                <ArrowLeft size={20} strokeWidth={1.5} />
+              <button className="nike-prev bg-[#f5f5f5] hover:bg-[#e5e5e5] p-3 rounded-full transition-colors group">
+                <ArrowLeft size={20} strokeWidth={1.5} className="group-active:scale-90 transition-transform" />
               </button>
-              <button className="nike-next bg-[#f5f5f5] hover:bg-[#e5e5e5] p-3 rounded-full transition-colors">
-                <ArrowRight size={20} strokeWidth={1.5} />
+              <button className="nike-next bg-[#f5f5f5] hover:bg-[#e5e5e5] p-3 rounded-full transition-colors group">
+                <ArrowRight size={20} strokeWidth={1.5} className="group-active:scale-90 transition-transform" />
               </button>
             </div>
           </div>
@@ -84,47 +77,63 @@ const OffersSection = () => {
           breakpoints={{
             480: { slidesPerView: 2, spaceBetween: 12 },
             768: { slidesPerView: 3, spaceBetween: 16 },
-            1024: { slidesPerView: 4, spaceBetween: 24 } // وسعنا العرض شوية عشان اللابتوب
+            1024: { slidesPerView: 4, spaceBetween: 24 }
           }}
           className="nike-style-swiper !pb-10"
         >
-          {offers.map((product) => (
-            <SwiperSlide key={product.id}>
-              <div className="group flex flex-col h-full cursor-pointer">
-                
-                {/* Image Container */}
-                <div className="aspect-[4/5] w-full overflow-hidden bg-[#f6f6f6] mb-4 rounded-xl relative">
-                  <img 
-                    src={product.image_urls[0]} 
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  {/* Badge للخصم */}
-                  <div className="absolute top-3 left-3 bg-black text-white text-[9px] font-black px-2 py-1 uppercase italic tracking-tighter">
-                    Save {Math.round(((product.old_price - product.price) / product.old_price) * 100)}%
-                  </div>
-                </div>
+          {offers.map((product) => {
+            const discount = Math.round(((product.old_price - product.price) / product.old_price) * 100);
 
-                {/* Text Content */}
-                <div className="flex-grow space-y-0.5 px-1">
-                  <h3 className="text-[15px] font-black uppercase italic tracking-tight">{product.name}</h3>
-                  <p className="text-[12px] text-gray-400 uppercase font-bold">{product.category}</p>
+            return (
+              <SwiperSlide key={product.id}>
+                <Link to={`/product/${product.id}`} className="group flex flex-col h-full cursor-pointer">
                   
-                  {/* Prices */}
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-[16px] font-black text-red-600 italic">{product.price} EGP</span>
-                    <span className="text-[13px] font-medium text-gray-300 line-through italic">{product.old_price} EGP</span>
+                  {/* Image Container */}
+                  <div className="aspect-[4/5] w-full overflow-hidden bg-[#f6f6f6] mb-4 rounded-xl relative">
+                    <img 
+                      src={product.image_urls?.[0]} 
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    
+                    {/* Discount Badge */}
+                    {discount > 0 && (
+                      <div className="absolute top-3 left-3 bg-black text-white text-[9px] font-black px-2 py-1 uppercase italic tracking-tighter z-10">
+                        Save {discount}%
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
-            </SwiperSlide>
-          ))}
+
+                  {/* Text Content */}
+                  <div className="flex-grow space-y-0.5 px-1">
+                    <h3 className="text-[15px] font-black uppercase italic tracking-tight truncate">
+                      {product.name}
+                    </h3>
+                    <p className="text-[12px] text-gray-400 uppercase font-bold">
+                      {product.category || 'Collection'}
+                    </p>
+                    
+                    {/* Prices */}
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-[16px] font-black text-red-600 italic">
+                        {product.price} EGP
+                      </span>
+                      <span className="text-[13px] font-medium text-gray-300 line-through italic">
+                        {product.old_price} EGP
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              </SwiperSlide>
+            );
+          })}
           
           <div className="custom-scrollbar mt-8 h-1 bg-gray-100 rounded-full md:hidden" />
         </Swiper>
       </div>
 
-      <style jsx global>{`
+      <style jsx="true" global="true">{`
         .custom-scrollbar .swiper-scrollbar-drag {
           background: #000 !important;
           height: 2px !important;
