@@ -10,6 +10,23 @@ import {
 
 const CategoryPage = () => {
   const navigate = useNavigate();
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const controlNavbar = () => {
+      if (window.scrollY > lastScrollY && window.scrollY > 100) { 
+        setIsNavbarVisible(false);
+      } else {
+        setIsNavbarVisible(true);
+      }
+      setLastScrollY(window.scrollY);
+    };
+
+    window.addEventListener('scroll', controlNavbar);
+    return () => window.removeEventListener('scroll', controlNavbar);
+  }, [lastScrollY]);
+
 
   const [visibleProducts, setVisibleProducts] = useState(10); 
   const [hasMore, setHasMore] = useState(true); 
@@ -412,7 +429,9 @@ const CategoryPage = () => {
 
   return (
     <div className="bg-white min-h-screen font-sans relative text-[#121212]">
-      <div className="sticky top-0 bg-white z-40 border-b border-gray-100 px-4 md:px-12 py-6 flex flex-wrap justify-between items-center gap-4">
+      <div className={`sticky transition-all duration-500 bg-white z-40 border-b border-gray-100 px-4 md:px-12 py-6 flex flex-wrap justify-between items-center gap-4 ${
+        isNavbarVisible ? 'top-[70px]' : 'top-0'
+      }`}>        
         <h1 className="text-xl md:text-2xl font-black italic uppercase tracking-tighter">
           {(filterType === 'new' || categoryName === 'new-arrivals') ? 'New Arrivals' : categoryName?.replace('-', ' ')} 
           <span className="text-gray-300 font-normal"> / {products.length}</span>

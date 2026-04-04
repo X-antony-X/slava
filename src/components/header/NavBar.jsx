@@ -112,8 +112,9 @@ const Navbar = () => {
 
   return (
     <>
+    <div className="h-[40px] w-full"></div>
       {/* Search Overlay */}
-      <div className={`fixed inset-0 bg-white z-[200] transition-all duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
+      <div className={`fixed inset-0 bg-white z-50 transition-all duration-300 ${isSearchOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'}`}>
         <div className="max-w-[1440px] mx-auto px-4 md:px-10 py-4">
           <div className="flex items-center justify-between gap-10">
             <img src="/thumbnail.svg" alt="Logo" className="h-10 md:h-12 w-auto object-contain" />

@@ -160,7 +160,7 @@ const HeroSection = () => {
       </div>
 
       {/* Circle Progress Button */}
-      <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-50 flex items-center gap-2 md:gap-3">
+      <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-40 flex items-center gap-2 md:gap-3">
         <button 
           onClick={() => setIsPlaying(!isPlaying)}
           className="relative w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-zinc-800/90 rounded-full hover:bg-zinc-700 transition-all"
